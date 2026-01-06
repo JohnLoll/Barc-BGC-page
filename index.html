@@ -86,10 +86,11 @@
     <main class="main">
       <div class="toprow">
         <div class="search-box">
+          <input id="apiKeyInput" class="input" placeholder="Roblox API Key (rbx_cloud_...)" style="width:300px" />
           <input id="usernameInput" class="input" placeholder="Enter Roblox username..." />
           <button id="searchBtn" class="btn">Analyze Account</button>
         </div>
-        <div class="status" id="statusText">Ready to analyze</div>
+        <div class="status" id="statusText">Ready to analyze • Enter API key first</div>
       </div>
 
       <div id="content">
@@ -154,6 +155,7 @@ let activeTab = 'overview';
 let avatarLarge = null, avatarHead = null;
 
 const elements = {
+  apiKeyInput: document.getElementById('apiKeyInput'),
   usernameInput: document.getElementById('usernameInput'),
   searchBtn: document.getElementById('searchBtn'),
   statusText: document.getElementById('statusText'),
@@ -169,6 +171,21 @@ const elements = {
   panelTitle: document.getElementById('panelTitle'),
   panelBody: document.getElementById('panelBody')
 };
+
+// Load API key from localStorage if available
+if(localStorage.getItem('robloxApiKey')) {
+  elements.apiKeyInput.value = localStorage.getItem('robloxApiKey');
+  elements.statusText.textContent = 'API key loaded • Ready to analyze';
+}
+
+// Save API key when changed
+elements.apiKeyInput.addEventListener('change', () => {
+  const apiKey = elements.apiKeyInput.value.trim();
+  if(apiKey) {
+    localStorage.setItem('robloxApiKey', apiKey);
+    elements.statusText.textContent = 'API key saved • Ready to analyze';
+  }
+});
 
 // Navigation
 document.querySelectorAll('.nav button').forEach(btn => {
@@ -210,6 +227,13 @@ function hideLoading() {
 
 async function analyzeAccount() {
   const username = elements.usernameInput.value.trim();
+  const apiKey = elements.apiKeyInput.value.trim();
+  
+  if(!apiKey) {
+    alert('Please enter your Roblox API key (rbx_cloud_...)');
+    return;
+  }
+  
   if(!username) {
     alert('Please enter a username');
     return;
@@ -235,7 +259,7 @@ async function analyzeAccount() {
     elements.statusText.textContent = 'Fetching profile data...';
 
     // Fetch all data in parallel
-    const [userInfo, friends, followers, following, groups, badges, avatarData, headshot] = await Promise.all([
+    const [userInfo, friends, followers, following, groups, badges, avatarData, headshot, inventoryData] = await Promise.all([
       fetch(`https://users.roblox.com/v1/users/${currentUserId}`).then(r => r.json()),
       fetch(`https://friends.roblox.com/v1/users/${currentUserId}/friends/count`).then(r => r.json()),
       fetch(`https://friends.roblox.com/v1/users/${currentUserId}/followers/count`).then(r => r.json()),
@@ -243,7 +267,8 @@ async function analyzeAccount() {
       fetch(`https://groups.roblox.com/v2/users/${currentUserId}/groups/roles`).then(r => r.json()),
       fetch(`https://badges.roblox.com/v1/users/${currentUserId}/badges?limit=100&sortOrder=Desc`).then(r => r.json()),
       fetch(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json()),
-      fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json())
+      fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json()),
+      fetchInventoryData(currentUserId, apiKey)
     ]);
 
     // Calculate account age
@@ -261,7 +286,8 @@ async function analyzeAccount() {
       badges: badges.data || [],
       badgeCount: badges.data ? badges.data.length : 0,
       avatarUrl: avatarData.data?.[0]?.imageUrl || null,
-      headshotUrl: headshot.data?.[0]?.imageUrl || null
+      headshotUrl: headshot.data?.[0]?.imageUrl || null,
+      inventory: inventoryData
     };
 
     avatarLarge = currentUserData.avatarUrl;
@@ -291,9 +317,92 @@ async function analyzeAccount() {
   }
 }
 
+async function fetchInventoryData(userId, apiKey) {
+  const inventory = {
+    shirts: 0,
+    pants: 0,
+    accessories: 0,
+    gamepasses: 0,
+    isPrivate: false
+  };
+
+  try {
+    // Fetch shirts
+    const shirtsResp = await fetch(`https://apis.roblox.com/cloud/v2/users/${userId}/inventory-items?maxPageSize=100&filter=inventoryItemAssetTypes=CLASSIC_SHIRT`, {
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if(shirtsResp.status === 403) {
+      inventory.isPrivate = true;
+      return inventory;
+    }
+    
+    if(shirtsResp.ok) {
+      const shirtsData = await shirtsResp.json();
+      inventory.shirts = shirtsData.inventoryItems?.length || 0;
+    }
+
+    // Fetch pants
+    const pantsResp = await fetch(`https://apis.roblox.com/cloud/v2/users/${userId}/inventory-items?maxPageSize=100&filter=inventoryItemAssetTypes=CLASSIC_PANTS`, {
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if(pantsResp.ok) {
+      const pantsData = await pantsResp.json();
+      inventory.pants = pantsData.inventoryItems?.length || 0;
+    }
+
+    // Fetch accessories
+    const accessoriesResp = await fetch(`https://apis.roblox.com/cloud/v2/users/${userId}/inventory-items?maxPageSize=100&filter=inventoryItemAssetTypes=HAT`, {
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if(accessoriesResp.ok) {
+      const accessoriesData = await accessoriesResp.json();
+      inventory.accessories = accessoriesData.inventoryItems?.length || 0;
+    }
+
+    // Fetch gamepasses
+    const gamepassesResp = await fetch(`https://apis.roblox.com/cloud/v2/users/${userId}/inventory-items?maxPageSize=100&filter=gamePasses=true`, {
+      headers: {
+        'x-api-key': apiKey,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if(gamepassesResp.ok) {
+      const gamepassesData = await gamepassesResp.json();
+      inventory.gamepasses = gamepassesData.inventoryItems?.length || 0;
+    }
+
+  } catch(error) {
+    console.error('Inventory fetch error:', error);
+  }
+
+  return inventory;
+}
+
 function calculateAltScore(data) {
   let score = 0;
   const reasons = [];
+  
+  const inventory = data.inventory || {};
+  const clothingCount = (inventory.shirts || 0) + (inventory.pants || 0);
+  const totalEngagement = data.badgeCount + (inventory.gamepasses || 0) * 5 + clothingCount * 2 + (inventory.accessories || 0) + data.groups.length;
+  
+  // Check if inventory is private
+  if(inventory.isPrivate) {
+    reasons.push('⚠️ Inventory is private - limited analysis available');
+  }
   
   // Account age penalties
   if(data.accountAgeDays < 7) {
@@ -314,6 +423,30 @@ function calculateAltScore(data) {
   } else if(data.badgeCount < 100) {
     score += 15;
     reasons.push(`Low badge count (${data.badgeCount}) (+15)`);
+  } else if(data.badgeCount < 210) {
+    score += 10;
+    reasons.push(`Below recommended badge count (${data.badgeCount}) (+10)`);
+  }
+
+  // Clothing check
+  if(!inventory.isPrivate && clothingCount === 0 && data.accountAgeDays > 30) {
+    score += 15;
+    reasons.push('No clothing items (+15)');
+  } else if(!inventory.isPrivate && clothingCount < 5 && data.accountAgeDays > 90) {
+    score += 10;
+    reasons.push(`Very few clothing items (${clothingCount}) (+10)`);
+  }
+
+  // Gamepass check
+  if(!inventory.isPrivate && (inventory.gamepasses || 0) < 5 && data.accountAgeDays > 180) {
+    score += 12;
+    reasons.push(`Few gamepasses (${inventory.gamepasses || 0}) (+12)`);
+  }
+
+  // Accessories check
+  if(!inventory.isPrivate && (inventory.accessories || 0) < 5 && data.accountAgeDays > 180) {
+    score += 10;
+    reasons.push(`Few accessories (${inventory.accessories || 0}) (+10)`);
   }
 
   // Friends
@@ -323,6 +456,9 @@ function calculateAltScore(data) {
   } else if(data.friends < 5) {
     score += 10;
     reasons.push(`Very few friends (${data.friends}) (+10)`);
+  } else if(data.friends >= 100) {
+    score -= 5;
+    reasons.push(`Good friend count (${data.friends}) (-5 bonus)`);
   }
 
   // Groups
@@ -332,11 +468,30 @@ function calculateAltScore(data) {
   } else if(data.groups.length < 3) {
     score += 5;
     reasons.push(`Few groups (${data.groups.length}) (+5)`);
+  } else if(data.groups.length >= 50) {
+    score -= 3;
+    reasons.push(`Active in many groups (${data.groups.length}) (-3 bonus)`);
+  }
+
+  // Total engagement for old accounts
+  if(data.accountAgeDays > 1800 && totalEngagement < 1200) {
+    score += 6;
+    reasons.push(`Old account with low engagement (${totalEngagement}) (+6)`);
+  }
+
+  // Badges per year
+  if(data.accountAgeDays > 365) {
+    const badgesPerYear = (data.badgeCount / data.accountAgeDays) * 365;
+    if(badgesPerYear < 100) {
+      score += 15;
+      reasons.push(`Low badge acquisition rate (${badgesPerYear.toFixed(1)}/year) (+15)`);
+    }
   }
 
   // Determine category
   let category = 'LOW';
-  if(score >= 50) category = 'HIGH';
+  if(score >= 100) category = 'AUTO-FAIL';
+  else if(score >= 50) category = 'HIGH';
   else if(score >= 16) category = 'MEDIUM-HIGH';
   else if(score >= 8) category = 'MEDIUM';
 
@@ -355,12 +510,13 @@ function renderContent() {
     elements.panelTitle.textContent = 'Account Overview & Alt Score';
     
     const analysis = calculateAltScore(data);
-    const badgeClass = analysis.category === 'HIGH' ? 'badge-high' : 
+    const badgeClass = analysis.category === 'AUTO-FAIL' ? 'badge-auto-fail' :
+                       analysis.category === 'HIGH' ? 'badge-high' : 
                        analysis.category === 'MEDIUM-HIGH' ? 'badge-medium-high' :
                        analysis.category === 'MEDIUM' ? 'badge-medium' : 'badge-low';
 
     elements.panelBody.innerHTML = `
-      <div class="alert ${analysis.category === 'HIGH' ? 'alert-error' : analysis.category === 'LOW' ? 'alert-success' : 'alert-warning'}">
+      <div class="alert ${analysis.category === 'AUTO-FAIL' || analysis.category === 'HIGH' ? 'alert-error' : analysis.category === 'LOW' ? 'alert-success' : 'alert-warning'}">
         <strong>Alt Likelihood: <span class="badge ${badgeClass}">${analysis.category}</span></strong>
         <div style="margin-top:8px">Score: ${analysis.score} / 100</div>
       </div>
@@ -371,7 +527,7 @@ function renderContent() {
           <div class="metric-value">${analysis.score}</div>
         </div>
         <div class="progress-bar">
-          <div class="progress-fill" style="width:${Math.min(analysis.score, 100)}%"></div>
+          <div class="progress-fill" style="width:${Math.min(analysis.score, 100)}%;background:${analysis.score >= 50 ? 'linear-gradient(90deg,#ef4444,#dc2626)' : analysis.score >= 16 ? 'linear-gradient(90deg,#f97316,#ea580c)' : 'linear-gradient(90deg,#3b82f6,#8b5cf6)'}"></div>
         </div>
       </div>
 
@@ -397,6 +553,14 @@ function renderContent() {
         <div class="info-item">
           <span class="info-label">Friends</span>
           <span class="info-value">${data.friends}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Clothing</span>
+          <span class="info-value">${data.inventory ? ((data.inventory.shirts || 0) + (data.inventory.pants || 0)) : 'N/A'}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Game Passes</span>
+          <span class="info-value">${data.inventory ? (data.inventory.gamepasses || 0) : 'N/A'}</span>
         </div>
         <div class="info-item">
           <span class="info-label">Created</span>
@@ -470,19 +634,75 @@ function renderContent() {
 
   if(activeTab === 'inventory') {
     elements.panelTitle.textContent = 'Inventory Analysis';
+    
+    const inventory = data.inventory || {};
+    
+    if(inventory.isPrivate) {
+      elements.panelBody.innerHTML = `
+        <div class="alert alert-error">
+          <strong>⚠️ Inventory Private</strong><br>
+          This user's inventory is set to private. Cannot fetch inventory data.
+        </div>
+      `;
+      return;
+    }
+    
+    const clothingCount = (inventory.shirts || 0) + (inventory.pants || 0);
+    
     elements.panelBody.innerHTML = `
-      <div class="alert alert-warning">
-        <strong>Note:</strong> Full inventory analysis requires API access with appropriate permissions.
-      </div>
       <div class="metric-card">
-        <div class="metric-title">Available Data</div>
+        <div class="metric-header">
+          <div class="metric-title">Clothing Items</div>
+          <div class="metric-value">${clothingCount}</div>
+        </div>
         <div class="info-grid" style="margin-top:12px">
           <div class="info-item">
-            <span class="info-label">Estimated Assets</span>
-            <span class="info-value">Limited Access</span>
+            <span class="info-label">Shirts</span>
+            <span class="info-value">${inventory.shirts || 0}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Pants</span>
+            <span class="info-value">${inventory.pants || 0}</span>
           </div>
         </div>
       </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <div class="metric-title">Accessories</div>
+          <div class="metric-value">${inventory.accessories || 0}</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <div class="metric-title">Game Passes</div>
+          <div class="metric-value">${inventory.gamepasses || 0}</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-title">Inventory Health</div>
+        <div class="info-grid" style="margin-top:12px">
+          <div class="info-item">
+            <span class="info-label">Total Items</span>
+            <span class="info-value">${clothingCount + (inventory.accessories || 0) + (inventory.gamepasses || 0)}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Account Age</span>
+            <span class="info-value">${data.accountAgeDays} days</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Items per Month</span>
+            <span class="info-value">${data.accountAgeDays > 30 ? ((clothingCount + (inventory.accessories || 0) + (inventory.gamepasses || 0)) / (data.accountAgeDays / 30)).toFixed(1) : 'N/A'}</span>
+          </div>
+        </div>
+      </div>
+
+      ${clothingCount === 0 && data.accountAgeDays > 30 ? 
+        '<div class="alert alert-warning"><strong>⚠️ Warning:</strong> No clothing items for account older than 30 days</div>' : ''}
+      ${(inventory.gamepasses || 0) < 5 && data.accountAgeDays > 180 ? 
+        '<div class="alert alert-warning"><strong>⚠️ Warning:</strong> Very few game passes for account age</div>' : ''}
     `;
   }
 
