@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Roblox Alt Detection Dashboard</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#0a0e27;color:#e8eaf6;line-height:1.6}
+    .app{display:flex;min-height:100vh}
+    .sidebar{width:260px;background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);padding:24px;display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,0.4)}
+    .brand{font-size:20px;font-weight:800;margin-bottom:24px;color:#60a5fa;text-align:center;letter-spacing:-0.5px}
+    .nav{display:flex;flex-direction:column;gap:8px}
+    .nav button{background:transparent;border:0;color:#cbd5e1;padding:12px 16px;border-radius:10px;text-align:left;cursor:pointer;font-weight:500;transition:all 0.2s}
+    .nav button:hover{background:#1e293b;color:#f1f5f9}
+    .nav button.active{background:#3b82f6;color:white;font-weight:600;box-shadow:0 4px 12px rgba(59,130,246,0.4)}
+    .main{flex:1;padding:32px;overflow-y:auto}
+    .toprow{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:16px}
+    .search-box{display:flex;gap:12px;align-items:center}
+    .input{padding:12px 16px;border-radius:12px;border:2px solid #334155;background:#1e293b;color:#f1f5f9;width:340px;font-size:15px;transition:all 0.2s}
+    .input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
+    .btn{padding:12px 24px;border-radius:12px;border:0;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);color:white;cursor:pointer;font-weight:600;font-size:15px;transition:all 0.2s;box-shadow:0 4px 12px rgba(59,130,246,0.3)}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(59,130,246,0.4)}
+    .btn:active{transform:translateY(0)}
+    .status{color:#94a3b8;font-size:14px;padding:8px 16px;background:#1e293b;border-radius:8px}
+    .grid{display:grid;grid-template-columns:380px 1fr;gap:24px}
+    .card{background:#1e293b;padding:24px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:1px solid #334155}
+    .avatar-section{display:flex;flex-direction:column;align-items:center;gap:16px}
+    .avatar{width:220px;height:220px;border-radius:16px;object-fit:cover;background:#0f172a;border:3px solid #334155;box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+    .user-info{text-align:center;width:100%}
+    .display-name{font-size:24px;font-weight:700;margin-bottom:4px}
+    .username{color:#94a3b8;font-size:15px;margin-bottom:12px}
+    .bio{color:#cbd5e1;font-size:14px;line-height:1.5;padding:12px;background:#0f172a;border-radius:8px;margin-top:8px;max-height:120px;overflow-y:auto}
+    .stats-row{display:flex;gap:16px;margin-top:16px;width:100%}
+    .stat-box{flex:1;text-align:center;padding:12px;background:#0f172a;border-radius:10px}
+    .stat-label{color:#94a3b8;font-size:13px;margin-bottom:4px}
+    .stat-value{font-size:20px;font-weight:700;color:#60a5fa}
+    .tabs{display:flex;gap:10px;margin-top:16px;width:100%}
+    .tab{flex:1;padding:10px;border-radius:10px;background:#0f172a;cursor:pointer;font-weight:600;text-align:center;transition:all 0.2s;border:2px solid transparent}
+    .tab:hover{border-color:#3b82f6}
+    .tab.active{background:#3b82f6;color:white;box-shadow:0 4px 12px rgba(59,130,246,0.3)}
+    .section-title{font-size:20px;font-weight:700;margin-bottom:16px;color:#f1f5f9}
+    .info-grid{display:grid;gap:12px}
+    .info-item{display:flex;justify-content:space-between;padding:12px;background:#0f172a;border-radius:10px;border-left:3px solid #3b82f6}
+    .info-label{color:#94a3b8;font-weight:500}
+    .info-value{color:#f1f5f9;font-weight:600}
+    .badge{display:inline-block;padding:6px 12px;border-radius:6px;font-size:13px;font-weight:600;margin-right:8px;margin-bottom:8px}
+    .badge-high{background:#ef4444;color:white}
+    .badge-medium-high{background:#f97316;color:white}
+    .badge-medium{background:#eab308;color:#0a0e27}
+    .badge-low{background:#22c55e;color:white}
+    .badge-auto-fail{background:#7c3aed;color:white}
+    .skeleton{background:linear-gradient(90deg,#1e293b 25%,#334155 50%,#1e293b 75%);background-size:200% 100%;animation:shimmer 1.5s linear infinite;border-radius:12px;height:100px}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .metric-card{background:#0f172a;padding:16px;border-radius:12px;margin-bottom:12px;border:1px solid #334155}
+    .metric-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .metric-title{font-weight:600;color:#94a3b8;font-size:14px}
+    .metric-value{font-size:28px;font-weight:700;color:#60a5fa}
+    .progress-bar{width:100%;height:8px;background:#334155;border-radius:4px;overflow:hidden;margin-top:8px}
+    .progress-fill{height:100%;background:linear-gradient(90deg,#3b82f6,#8b5cf6);transition:width 0.3s}
+    .reasons-list{list-style:none;padding:0}
+    .reasons-list li{padding:10px;background:#0f172a;border-radius:8px;margin-bottom:8px;border-left:3px solid #3b82f6;font-size:14px}
+    .alert{padding:16px;border-radius:12px;margin-bottom:16px;border:2px solid}
+    .alert-warning{background:#422006;border-color:#f59e0b;color:#fbbf24}
+    .alert-error{background:#450a0a;border-color:#dc2626;color:#f87171}
+    .alert-success{background:#052e16;border-color:#16a34a;color:#4ade80}
+    @media(max-width:1024px){.grid{grid-template-columns:1fr}.sidebar{width:220px}}
+    @media(max-width:768px){.sidebar{display:none}.input{width:200px}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">🔍 Alt Detector</div>
+      <div class="nav">
+        <button class="active" data-tab="overview">Overview</button>
+        <button data-tab="detailed">Detailed Analysis</button>
+        <button data-tab="inventory">Inventory</button>
+        <button data-tab="badges">Badges</button>
+        <button data-tab="groups">Groups</button>
+        <button data-tab="social">Social</button>
+      </div>
+      <div style="margin-top:auto;font-size:13px;color:#64748b;text-align:center">Alt Detection System v2.0</div>
+    </aside>
+
+    <main class="main">
+      <div class="toprow">
+        <div class="search-box">
+          <input id="usernameInput" class="input" placeholder="Enter Roblox username..." />
+          <button id="searchBtn" class="btn">Analyze Account</button>
+        </div>
+        <div class="status" id="statusText">Ready to analyze</div>
+      </div>
+
+      <div id="content">
+        <div class="grid">
+          <!-- Left Panel: Avatar & Basic Info -->
+          <div class="card">
+            <div class="avatar-section">
+              <div id="avatarWrap">
+                <div id="avatarSkeleton" class="skeleton" style="width:220px;height:220px;display:none"></div>
+                <img id="avatarImg" class="avatar" style="display:none" />
+              </div>
+
+              <div class="user-info">
+                <div id="displayName" class="display-name">—</div>
+                <div id="usernameSmall" class="username">@—</div>
+                <div id="bio" class="bio" style="display:none">No bio</div>
+              </div>
+
+              <div class="stats-row">
+                <div class="stat-box">
+                  <div class="stat-label">Account Age</div>
+                  <div class="stat-value" id="accountAge">—</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-label">Friends</div>
+                  <div class="stat-value" id="friendsCount">—</div>
+                </div>
+              </div>
+
+              <div class="stats-row">
+                <div class="stat-box">
+                  <div class="stat-label">Followers</div>
+                  <div class="stat-value" id="followersCount">—</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-label">Following</div>
+                  <div class="stat-value" id="followingCount">—</div>
+                </div>
+              </div>
+
+              <div class="tabs">
+                <div id="renderFull" class="tab active">Full Body</div>
+                <div id="renderHead" class="tab">Headshot</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Panel: Dynamic Content -->
+          <div class="card">
+            <div class="section-title" id="panelTitle">Account Analysis</div>
+            <div id="panelBody"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+<script>
+let currentUserId = null;
+let currentUserData = null;
+let activeTab = 'overview';
+let avatarLarge = null, avatarHead = null;
+
+const elements = {
+  usernameInput: document.getElementById('usernameInput'),
+  searchBtn: document.getElementById('searchBtn'),
+  statusText: document.getElementById('statusText'),
+  avatarImg: document.getElementById('avatarImg'),
+  avatarSkeleton: document.getElementById('avatarSkeleton'),
+  displayName: document.getElementById('displayName'),
+  usernameSmall: document.getElementById('usernameSmall'),
+  bio: document.getElementById('bio'),
+  accountAge: document.getElementById('accountAge'),
+  friendsCount: document.getElementById('friendsCount'),
+  followersCount: document.getElementById('followersCount'),
+  followingCount: document.getElementById('followingCount'),
+  panelTitle: document.getElementById('panelTitle'),
+  panelBody: document.getElementById('panelBody')
+};
+
+// Navigation
+document.querySelectorAll('.nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeTab = btn.dataset.tab;
+    renderContent();
+  });
+});
+
+// Search
+elements.searchBtn.addEventListener('click', analyzeAccount);
+elements.usernameInput.addEventListener('keydown', e => { if(e.key === 'Enter') analyzeAccount(); });
+
+// Avatar tabs
+document.getElementById('renderFull').addEventListener('click', () => { 
+  if(avatarLarge) elements.avatarImg.src = avatarLarge; 
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('renderFull').classList.add('active');
+});
+document.getElementById('renderHead').addEventListener('click', () => { 
+  if(avatarHead) elements.avatarImg.src = avatarHead; 
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('renderHead').classList.add('active');
+});
+
+function showLoading() {
+  elements.avatarSkeleton.style.display = 'block';
+  elements.avatarImg.style.display = 'none';
+  elements.bio.style.display = 'none';
+  elements.panelBody.innerHTML = '<div class="skeleton"></div>';
+}
+
+function hideLoading() {
+  elements.avatarSkeleton.style.display = 'none';
+  elements.avatarImg.style.display = 'block';
+}
+
+async function analyzeAccount() {
+  const username = elements.usernameInput.value.trim();
+  if(!username) {
+    alert('Please enter a username');
+    return;
+  }
+
+  showLoading();
+  elements.statusText.textContent = 'Resolving user...';
+
+  try {
+    // Get user ID
+    const userIdResp = await fetch(`https://users.roblox.com/v1/usernames/users`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({usernames: [username]})
+    });
+    const userIdData = await userIdResp.json();
+    
+    if(!userIdData.data || !userIdData.data.length) {
+      throw new Error('User not found');
+    }
+
+    currentUserId = userIdData.data[0].id;
+    elements.statusText.textContent = 'Fetching profile data...';
+
+    // Fetch all data in parallel
+    const [userInfo, friends, followers, following, groups, badges, avatarData, headshot] = await Promise.all([
+      fetch(`https://users.roblox.com/v1/users/${currentUserId}`).then(r => r.json()),
+      fetch(`https://friends.roblox.com/v1/users/${currentUserId}/friends/count`).then(r => r.json()),
+      fetch(`https://friends.roblox.com/v1/users/${currentUserId}/followers/count`).then(r => r.json()),
+      fetch(`https://friends.roblox.com/v1/users/${currentUserId}/followings/count`).then(r => r.json()),
+      fetch(`https://groups.roblox.com/v2/users/${currentUserId}/groups/roles`).then(r => r.json()),
+      fetch(`https://badges.roblox.com/v1/users/${currentUserId}/badges?limit=100&sortOrder=Desc`).then(r => r.json()),
+      fetch(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json()),
+      fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json())
+    ]);
+
+    // Calculate account age
+    const accountCreated = new Date(userInfo.created);
+    const accountAgeDays = Math.floor((Date.now() - accountCreated) / (1000 * 60 * 60 * 24));
+
+    // Store data
+    currentUserData = {
+      userInfo,
+      accountAgeDays,
+      friends: friends.count || 0,
+      followers: followers.count || 0,
+      following: following.count || 0,
+      groups: groups.data || [],
+      badges: badges.data || [],
+      badgeCount: badges.data ? badges.data.length : 0,
+      avatarUrl: avatarData.data?.[0]?.imageUrl || null,
+      headshotUrl: headshot.data?.[0]?.imageUrl || null
+    };
+
+    avatarLarge = currentUserData.avatarUrl;
+    avatarHead = currentUserData.headshotUrl;
+
+    // Update UI
+    elements.displayName.textContent = userInfo.displayName || userInfo.name;
+    elements.usernameSmall.textContent = '@' + userInfo.name;
+    elements.bio.textContent = userInfo.description || 'No bio';
+    elements.bio.style.display = userInfo.description ? 'block' : 'none';
+    elements.accountAge.textContent = `${accountAgeDays}d`;
+    elements.friendsCount.textContent = currentUserData.friends;
+    elements.followersCount.textContent = currentUserData.followers;
+    elements.followingCount.textContent = currentUserData.following;
+
+    if(avatarLarge) elements.avatarImg.src = avatarLarge;
+
+    hideLoading();
+    elements.statusText.textContent = 'Analysis complete';
+    
+    renderContent();
+
+  } catch(error) {
+    console.error(error);
+    elements.statusText.textContent = 'Error: ' + error.message;
+    elements.panelBody.innerHTML = `<div class="alert alert-error">Failed to analyze account: ${error.message}</div>`;
+  }
+}
+
+function calculateAltScore(data) {
+  let score = 0;
+  const reasons = [];
+  
+  // Account age penalties
+  if(data.accountAgeDays < 7) {
+    score += 35;
+    reasons.push('Account less than 1 week old (+35)');
+  } else if(data.accountAgeDays < 30) {
+    score += 25;
+    reasons.push('Account less than 1 month old (+25)');
+  } else if(data.accountAgeDays < 90) {
+    score += 15;
+    reasons.push('Account less than 3 months old (+15)');
+  }
+
+  // Badges
+  if(data.badgeCount < 50) {
+    score += 30;
+    reasons.push(`Very few badges (${data.badgeCount}) (+30)`);
+  } else if(data.badgeCount < 100) {
+    score += 15;
+    reasons.push(`Low badge count (${data.badgeCount}) (+15)`);
+  }
+
+  // Friends
+  if(data.friends === 0) {
+    score += 15;
+    reasons.push('No friends (+15)');
+  } else if(data.friends < 5) {
+    score += 10;
+    reasons.push(`Very few friends (${data.friends}) (+10)`);
+  }
+
+  // Groups
+  if(data.groups.length === 0) {
+    score += 10;
+    reasons.push('No groups (+10)');
+  } else if(data.groups.length < 3) {
+    score += 5;
+    reasons.push(`Few groups (${data.groups.length}) (+5)`);
+  }
+
+  // Determine category
+  let category = 'LOW';
+  if(score >= 50) category = 'HIGH';
+  else if(score >= 16) category = 'MEDIUM-HIGH';
+  else if(score >= 8) category = 'MEDIUM';
+
+  return { score, category, reasons };
+}
+
+function renderContent() {
+  if(!currentUserData) {
+    elements.panelBody.innerHTML = '<div class="alert alert-warning">Search for a user to view analysis</div>';
+    return;
+  }
+
+  const data = currentUserData;
+
+  if(activeTab === 'overview') {
+    elements.panelTitle.textContent = 'Account Overview & Alt Score';
+    
+    const analysis = calculateAltScore(data);
+    const badgeClass = analysis.category === 'HIGH' ? 'badge-high' : 
+                       analysis.category === 'MEDIUM-HIGH' ? 'badge-medium-high' :
+                       analysis.category === 'MEDIUM' ? 'badge-medium' : 'badge-low';
+
+    elements.panelBody.innerHTML = `
+      <div class="alert ${analysis.category === 'HIGH' ? 'alert-error' : analysis.category === 'LOW' ? 'alert-success' : 'alert-warning'}">
+        <strong>Alt Likelihood: <span class="badge ${badgeClass}">${analysis.category}</span></strong>
+        <div style="margin-top:8px">Score: ${analysis.score} / 100</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <div class="metric-title">Risk Score</div>
+          <div class="metric-value">${analysis.score}</div>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${Math.min(analysis.score, 100)}%"></div>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:24px">Detection Factors</div>
+      <ul class="reasons-list">
+        ${analysis.reasons.map(r => `<li>${r}</li>`).join('')}
+      </ul>
+
+      <div class="section-title" style="margin-top:24px">Quick Stats</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Account Age</span>
+          <span class="info-value">${data.accountAgeDays} days</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Total Badges</span>
+          <span class="info-value">${data.badgeCount}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Groups</span>
+          <span class="info-value">${data.groups.length}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Friends</span>
+          <span class="info-value">${data.friends}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Created</span>
+          <span class="info-value">${new Date(data.userInfo.created).toLocaleDateString()}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Profile URL</span>
+          <span class="info-value"><a href="https://www.roblox.com/users/${currentUserId}/profile" target="_blank" style="color:#60a5fa">View Profile</a></span>
+        </div>
+      </div>
+    `;
+  }
+
+  if(activeTab === 'detailed') {
+    elements.panelTitle.textContent = 'Detailed Analysis';
+    
+    const analysis = calculateAltScore(data);
+    const badgesPerDay = data.accountAgeDays > 0 ? (data.badgeCount / data.accountAgeDays).toFixed(2) : 0;
+    const groupsPerYear = data.accountAgeDays > 0 ? ((data.groups.length / data.accountAgeDays) * 365).toFixed(1) : 0;
+
+    elements.panelBody.innerHTML = `
+      <div class="metric-card">
+        <div class="metric-title">Account Activity Metrics</div>
+        <div class="info-grid" style="margin-top:12px">
+          <div class="info-item">
+            <span class="info-label">Badges per Day</span>
+            <span class="info-value">${badgesPerDay}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Groups per Year</span>
+            <span class="info-value">${groupsPerYear}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Friend/Follower Ratio</span>
+            <span class="info-value">${data.followers > 0 ? (data.friends / data.followers).toFixed(2) : 'N/A'}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-title">Engagement Score</div>
+        <div style="margin-top:12px">
+          <div class="info-item">
+            <span class="info-label">Total Engagement</span>
+            <span class="info-value">${data.badgeCount + data.groups.length + Math.floor(data.friends/10)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-title">Profile Completeness</div>
+        <div class="info-grid" style="margin-top:12px">
+          <div class="info-item">
+            <span class="info-label">Has Bio</span>
+            <span class="info-value">${data.userInfo.description ? '✓ Yes' : '✗ No'}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Display Name Set</span>
+            <span class="info-value">${data.userInfo.displayName !== data.userInfo.name ? '✓ Yes' : '✗ No'}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:24px">Full Analysis Breakdown</div>
+      <ul class="reasons-list">
+        ${analysis.reasons.map(r => `<li>${r}</li>`).join('')}
+        <li style="border-left-color:#22c55e">Analysis based on ${Object.keys(data).length} data points</li>
+      </ul>
+    `;
+  }
+
+  if(activeTab === 'inventory') {
+    elements.panelTitle.textContent = 'Inventory Analysis';
+    elements.panelBody.innerHTML = `
+      <div class="alert alert-warning">
+        <strong>Note:</strong> Full inventory analysis requires API access with appropriate permissions.
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">Available Data</div>
+        <div class="info-grid" style="margin-top:12px">
+          <div class="info-item">
+            <span class="info-label">Estimated Assets</span>
+            <span class="info-value">Limited Access</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if(activeTab === 'badges') {
+    elements.panelTitle.textContent = `Badges (${data.badgeCount} total)`;
+    
+    const badgesList = data.badges.slice(0, 50).map(badge => `
+      <div class="metric-card">
+        <div style="display:flex;gap:12px;align-items:center">
+          <img src="${badge.iconImageId ? `https://www.roblox.com/badge-thumbnail/image?badgeId=${badge.id}&width=150&height=150` : ''}" 
+               style="width:60px;height:60px;border-radius:8px;background:#0f172a"
+               onerror="this.style.display='none'"/>
+          <div style="flex:1">
+            <div style="font-weight:600">${badge.name || 'Unknown Badge'}</div>
+            <div style="color:#94a3b8;font-size:13px">${badge.description || 'No description'}</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    elements.panelBody.innerHTML = badgesList || '<div class="alert alert-warning">No badges found</div>';
+  }
+
+  if(activeTab === 'groups') {
+    elements.panelTitle.textContent = `Groups (${data.groups.length} total)`;
+    
+    const groupsList = data.groups.map(group => `
+      <div class="metric-card">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="flex:1">
+            <div style="font-weight:600">${group.group.name}</div>
+            <div style="color:#94a3b8;font-size:13px">Role: ${group.role.name} • Members: ${group.group.memberCount || 'Unknown'}</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    elements.panelBody.innerHTML = groupsList || '<div class="alert alert-warning">Not in any groups</div>';
+  }
+
+  if(activeTab === 'social') {
+    elements.panelTitle.textContent = 'Social Metrics';
+    
+    elements.panelBody.innerHTML = `
+      <div class="metric-card">
+        <div class="metric-header">
+          <div class="metric-title">Friends</div>
+          <div class="metric-value">${data.friends}</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <div class="metric-title">Followers</div>
+          <div class="metric-value">${data.followers}</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <div class="metric-title">Following</div>
+          <div class="metric-value">${data.following}</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-title">Social Analysis</div>
+        <div class="info-grid" style="margin-top:12px">
+          <div class="info-item">
+            <span class="info-label">Follower/Following Ratio</span>
