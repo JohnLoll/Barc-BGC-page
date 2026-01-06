@@ -96,7 +96,7 @@
           <input id="usernameInput" class="input" placeholder="Enter Roblox username..." />
           <button id="searchBtn" class="btn" disabled>Analyze Account</button>
         </div>
-        <div class="status" id="statusText">Enter and save your API key to begin</div>
+        <div class="status" id="statusText">Enter your API key and click "Save API Key"</div>
       </div>
 
       <div class="grid">
@@ -126,10 +126,10 @@
           <div class="section-title" id="panelTitle">Alt Detection Analysis</div>
           <div id="panelBody">
             <div class="alert alert-warning">
-              <strong>Enter & Save Your Roblox Cloud API Key</strong><br><br>
-              Click <strong>Save API Key</strong> after entering your key to enable analysis.<br><br>
-              Get your key from: <a href="https://create.roblox.com/credentials" target="_blank" style="color:#60a5fa">create.roblox.com/credentials</a><br>
-              Requires <strong>Inventory Read</strong> permission.
+              <strong>Step 1: Save Your API Key</strong><br><br>
+              Enter your Roblox Cloud API key above and click <strong>Save API Key</strong>.<br>
+              This will unlock the username field and analysis.<br><br>
+              Your key is saved only in your browser — never sent anywhere.
             </div>
           </div>
         </div>
@@ -188,22 +188,29 @@ function loadSavedKey() {
   }
 }
 
-// Save key when button clicked
+// Save key when "Save API Key" is clicked
 el.saveKeyBtn.addEventListener('click', () => {
   const key = el.apiKeyInput.value.trim();
   if (!key) {
-    alert('Please enter your API key first');
+    alert('Please enter your Roblox Cloud API key first');
     return;
   }
   localStorage.setItem(STORAGE_KEY, key);
-  el.statusText.textContent = 'API key saved! Ready to analyze.';
+  el.statusText.textContent = 'API key saved successfully! You can now enter a username.';
   el.searchBtn.disabled = false;
 });
 
-// Allow Enter key in API field to save
+// Press Enter in key field = click save button
 el.apiKeyInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     el.saveKeyBtn.click();
+  }
+});
+
+// Press Enter in username field = analyze (if button enabled)
+el.usernameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !el.searchBtn.disabled) {
+    analyze();
   }
 });
 
@@ -233,7 +240,7 @@ document.getElementById('renderHead').addEventListener('click', () => {
   document.getElementById('renderHead').classList.add('active');
 });
 
-// Analyze button
+// Analyze function
 async function analyze() {
   const username = el.usernameInput.value.trim();
   const apiKey = el.apiKeyInput.value.trim();
@@ -246,7 +253,7 @@ async function analyze() {
   el.searchBtn.disabled = true;
   el.searchBtn.textContent = 'Analyzing...';
   showLoading();
-  el.statusText.textContent = 'Finding user...';
+  el.statusText.textContent = 'Resolving user...';
 
   try {
     const idRes = await fetch('https://users.roblox.com/v1/usernames/users', {
@@ -328,9 +335,6 @@ async function analyze() {
 }
 
 el.searchBtn.addEventListener('click', analyze);
-el.usernameInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !el.searchBtn.disabled) analyze();
-});
 
 function showLoading() {
   el.avatarSkeleton.style.display = 'block';
@@ -343,7 +347,7 @@ function hideLoading() {
   el.avatarImg.style.display = 'block';
 }
 
-// All supporting functions (same as before)
+// Supporting functions (same as before)
 async function fetchAllBadges(userId) {
   const badges = [];
   let cursor = null;
