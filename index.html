@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Advanced Roblox Alt Detector</title>
-  <meta name="description" content="Professional Roblox alt account detection with real badge filtering, GAR badge position, and inventory analysis." />
+  <meta name="description" content="Professional Roblox alt detection with real badge filtering, GAR position, and inventory analysis." />
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#0a0e27;color:#e8eaf6;line-height:1.6}
@@ -23,7 +23,7 @@
     .input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
     .btn{padding:12px 28px;border-radius:12px;border:0;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;cursor:pointer;font-weight:600;font-size:15px;transition:all .2s;box-shadow:0 4px 12px rgba(59,130,246,.3)}
     .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(59,130,246,.4)}
-    .btn:disabled{background:#334155;cursor:not-allowed;opacity:0.6}
+    .btn:disabled{background:#334155;cursor:not-allowed;opacity:0.6;transform:none}
     .status{color:#94a3b8;font-size:14px;padding:8px 16px;background:#1e293b;border-radius:8px}
     .grid{display:grid;grid-template-columns:1fr;gap:24px}
     @media(min-width:1024px){.grid{grid-template-columns:380px 1fr}}
@@ -59,11 +59,12 @@
     .alert-warning{background:#422006;border-color:#f59e0b;color:#fbbf24}
     .alert-error{background:#450a0a;border-color:#dc2626;color:#f87171}
     .alert-success{background:#052e16;border-color:#16a34a;color:#4ade80}
-    .api-note{color:#94a3b8;font-size:14px;margin-top:8px}
+    .api-note{color:#94a3b8;font-size:14px;margin-top:8px;line-height:1.4}
     @media(max-width:768px){
       .sidebar{display:none}
       .search-box{flex-direction:column;align-items:stretch}
       .stats-row{grid-template-columns:1fr}
+      .input{min-width:100%}
     }
   </style>
 </head>
@@ -78,21 +79,24 @@
         <button data-tab="social">Social</button>
       </div>
       <div style="margin-top:auto;font-size:13px;color:#64748b;text-align:center;padding-top:20px;">
-        v3.0 • Requires Roblox Cloud API Key
+        v3.0 • Secure & Private<br>Key stored only in your browser
       </div>
     </aside>
 
     <main class="main">
       <div class="toprow">
         <div class="search-box">
-          <div style="flex:1">
-            <input id="apiKeyInput" class="input" placeholder="Roblox Cloud API Key (rbx_cloud_...)" />
-            <div class="api-note">Required for inventory & advanced analysis. Saved only in your browser.</div>
+          <div style="flex:1;max-width:400px">
+            <input id="apiKeyInput" type="password" class="input" placeholder="Roblox Cloud API Key (rbx_cloud_...)" autocomplete="off" />
+            <div class="api-note">
+              Required for inventory & advanced analysis.<br>
+              Saved securely in your browser (localStorage). Never sent anywhere.
+            </div>
           </div>
           <input id="usernameInput" class="input" placeholder="Enter Roblox username..." />
-          <button id="searchBtn" class="btn" disabled>Analyze</button>
+          <button id="searchBtn" class="btn" disabled>Analyze Account</button>
         </div>
-        <div class="status" id="statusText">Enter your Roblox Cloud API key to begin</div>
+        <div class="status" id="statusText">Enter your API key to enable analysis</div>
       </div>
 
       <div class="grid">
@@ -122,9 +126,10 @@
           <div class="section-title" id="panelTitle">Alt Detection Analysis</div>
           <div id="panelBody">
             <div class="alert alert-warning">
-              <strong>API Key Required</strong><br>
-              This tool uses the official Roblox Cloud API to access inventory and perform advanced detection.<br><br>
-              You must enter a valid <code>rbx_cloud_...</code> API key to analyze accounts.
+              <strong>Enter Your Roblox Cloud API Key</strong><br><br>
+              This tool needs access to the Roblox Cloud API to read inventory and perform accurate detection.<br><br>
+              Get your key from: <a href="https://create.roblox.com/credentials" target="_blank" style="color:#60a5fa">create.roblox.com/credentials</a><br>
+              Create an API key with <strong>Inventory Read</strong> permission.
             </div>
           </div>
         </div>
@@ -167,70 +172,90 @@ const el = {
   panelBody: document.getElementById('panelBody')
 };
 
-// Load and save API key
-if (localStorage.getItem('robloxCloudKey')) {
-  el.apiKeyInput.value = localStorage.getItem('robloxCloudKey');
+// === API KEY MANAGEMENT ===
+const STORAGE_KEY = 'robloxAltDetectorKey';
+
+// Load saved key
+if (localStorage.getItem(STORAGE_KEY)) {
+  el.apiKeyInput.value = localStorage.getItem(STORAGE_KEY);
 }
+
+// Save key whenever user types
 el.apiKeyInput.addEventListener('input', () => {
   const key = el.apiKeyInput.value.trim();
-  if (key) localStorage.setItem('robloxCloudKey', key);
-  else localStorage.removeItem('robloxCloudKey');
-  updateStatus();
+  if (key) {
+    localStorage.setItem(STORAGE_KEY, key);
+  } else {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+  updateUIState();
 });
 
-function updateStatus() {
+// Update button and status
+function updateUIState() {
   const key = el.apiKeyInput.value.trim();
-  if (key && key.startsWith('rbx_cloud_')) {
-    el.statusText.textContent = 'API key valid — Ready to analyze';
+  if (key.length > 10 && key.startsWith('rbx_cloud_')) {
+    el.statusText.textContent = 'API key ready — Enter username and click Analyze';
     el.searchBtn.disabled = false;
-  } else if (key) {
-    el.statusText.textContent = 'Warning: Key should start with "rbx_cloud_"';
+  } else if (key.length > 0) {
+    el.statusText.textContent = 'Key entered — should start with "rbx_cloud_"';
     el.searchBtn.disabled = false;
   } else {
     el.statusText.textContent = 'Enter your Roblox Cloud API key to begin';
     el.searchBtn.disabled = true;
   }
 }
-updateStatus();
+updateUIState();
 
-// Navigation
-document.querySelectorAll('.nav button').forEach(b => {
-  b.addEventListener('click', () => {
-    document.querySelectorAll('.nav button').forEach(x => x.classList.remove('active'));
-    b.classList.add('active');
-    activeTab = b.dataset.tab;
+// === NAVIGATION ===
+document.querySelectorAll('.nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeTab = btn.dataset.tab;
     renderContent();
   });
 });
 
-// Avatar tabs
-document.getElementById('renderFull').onclick = () => { if (avatarLarge) el.avatarImg.src = avatarLarge; toggleTab('renderFull'); };
-document.getElementById('renderHead').onclick = () => { if (avatarHead) el.avatarImg.src = avatarHead; toggleTab('renderHead'); };
-function toggleTab(id) {
+// === AVATAR TABS ===
+document.getElementById('renderFull').onclick = () => { if (avatarLarge) el.avatarImg.src = avatarLarge; setActiveTab('renderFull'); };
+document.getElementById('renderHead').onclick = () => { if (avatarHead) el.avatarImg.src = avatarHead; setActiveTab('renderHead'); };
+function setActiveTab(id) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 
-// Analyze
+// === MAIN ANALYSIS ===
 async function analyze() {
   const username = el.usernameInput.value.trim();
   const apiKey = el.apiKeyInput.value.trim();
-  if (!apiKey) return alert('Please enter your Roblox Cloud API key');
-  if (!username) return alert('Please enter a username');
+
+  if (!username) {
+    alert('Please enter a Roblox username');
+    return;
+  }
+  if (!apiKey) {
+    alert('Please enter your Roblox Cloud API key');
+    return;
+  }
 
   el.searchBtn.disabled = true;
+  el.searchBtn.textContent = 'Analyzing...';
   showLoading();
-  el.statusText.textContent = 'Resolving user...';
+  el.statusText.textContent = 'Finding user...';
 
   try {
+    // Resolve username
     const idRes = await fetch('https://users.roblox.com/v1/usernames/users', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({usernames: [username]})
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usernames: [username] })
     });
-    const idJson = await idRes.json();
-    if (!idJson.data?.length) throw new Error('User not found');
-    currentUserId = idJson.data[0].id;
+    const idData = await idRes.json();
+    if (!idData.data || idData.data.length === 0) throw new Error('User not found');
+    currentUserId = idData.data[0].id;
+
+    el.statusText.textContent = 'Fetching data...';
 
     const [
       userInfo,
@@ -274,6 +299,7 @@ async function analyze() {
     avatarLarge = currentUserData.avatarLarge;
     avatarHead = currentUserData.avatarHead;
 
+    // Update left panel
     el.displayName.textContent = userInfo.displayName || userInfo.name;
     el.usernameSmall.textContent = '@' + userInfo.name;
     el.bio.textContent = userInfo.description || 'No bio';
@@ -289,26 +315,31 @@ async function analyze() {
     renderContent();
 
   } catch (err) {
+    console.error(err);
     hideLoading();
     el.statusText.textContent = 'Error: ' + err.message;
-    el.panelBody.innerHTML = `<div class="alert alert-error"><strong>Error:</strong> ${err.message}</div>`;
+    el.panelBody.innerHTML = `<div class="alert alert-error"><strong>Failed:</strong> ${err.message}</div>`;
   } finally {
     el.searchBtn.disabled = false;
+    el.searchBtn.textContent = 'Analyze Account';
   }
 }
 
 el.searchBtn.onclick = analyze;
-el.usernameInput.addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
+el.usernameInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !el.searchBtn.disabled) analyze(); });
 
 function showLoading() {
   el.avatarSkeleton.style.display = 'block';
   el.avatarImg.style.display = 'none';
-  el.panelBody.innerHTML = '<div class="skeleton" style="height:500px;border-radius:16px"></div>';
+  el.panelBody.innerHTML = '<div class="skeleton" style="height:600px;border-radius:16px"></div>';
 }
+
 function hideLoading() {
   el.avatarSkeleton.style.display = 'none';
   el.avatarImg.style.display = 'block';
 }
+
+// === ALL SUPPORTING FUNCTIONS (same as before) ===
 
 async function fetchAllBadges(userId) {
   const badges = [];
@@ -320,6 +351,7 @@ async function fetchAllBadges(userId) {
     const json = await res.json();
     badges.push(...(json.data || []));
     cursor = json.nextPageCursor;
+    await new Promise(r => setTimeout(r, 50)); // Be gentle
   } while (cursor);
   return badges;
 }
@@ -329,11 +361,11 @@ async function processBadges(allBadges) {
   let filteredCount = 0;
   let garFound = false;
   let garPosition = null;
-  let garCreator = null;
 
   const excludedCreators = new Set();
   const creatorCounts = new Map();
 
+  // Count creators
   for (const b of allBadges) {
     const cid = b.creator?.id;
     if (cid) {
@@ -343,26 +375,23 @@ async function processBadges(allBadges) {
     }
   }
 
+  // Filter
   for (const [i, badge] of allBadges.entries()) {
     if (badge.id === CONSTANTS.GAR_BADGE_ID) {
       garFound = true;
       garPosition = i;
-      garCreator = badge.creator || null;
     }
 
     const cid = badge.creator?.id;
     if (cid && excludedCreators.has(cid)) { filteredCount++; continue; }
 
-    if (!await isValidBadge(badge)) {
-      filteredCount++;
-      continue;
-    }
+    if (!await isValidBadge(badge)) { filteredCount++; continue; }
 
     if (cid) {
-      const validList = (window.validByCreator ||= new Map()).get(cid) || [];
-      if (validList.length < 15) {
-        validList.push(badge);
-        window.validByCreator.set(cid, validList);
+      const list = (window._validByCreator ||= new Map()).get(cid) || [];
+      if (list.length < 15) {
+        list.push(badge);
+        window._validByCreator.set(cid, list);
         validCount++;
       } else filteredCount++;
     } else filteredCount++;
@@ -376,7 +405,6 @@ async function processBadges(allBadges) {
     found: garFound,
     pageNumber: garPage,
     totalPages,
-    creator: garCreator,
     totalBadges: validCount,
     filteredBadges: filteredCount,
     filteredPercentage: parseFloat(filteredPct),
@@ -437,23 +465,16 @@ function calculateScore(data) {
   const realBadges = data.realBadges;
   const gar = data.garBadge;
   const friends = data.friends;
-
   const filteredPct = gar.filteredPercentage;
 
-  if (realBadges < 210) {
-    score += 100;
-    reasons.push('Auto-Fail: <210 real badges');
-  }
-  if (filteredPct >= 78 || (filteredPct >= 80 && realBadges < 750)) {
-    score += 200;
-    reasons.push(`Auto-Fail: ${filteredPct}% fake badges`);
-  }
+  if (realBadges < 210) { score += 100; reasons.push('Auto-Fail: <210 real badges'); }
+  if (filteredPct >= 78 || (filteredPct >= 80 && realBadges < 750)) { score += 200; reasons.push(`Auto-Fail: ${filteredPct}% fake badges`); }
 
   if (gar.found) {
-    const pagesFromEnd = gar.totalPages - gar.pageNumber + 1;
-    if (pagesFromEnd <= 2) { score += 12; reasons.push('GAR badge very old (+12)'); }
-    else if (pagesFromEnd <= 4) { score += 8; reasons.push('GAR badge old (+8)'); }
-    else if (pagesFromEnd <= 6) { score += 4; reasons.push('GAR badge somewhat old (+4)'); }
+    const fromEnd = gar.totalPages - gar.pageNumber + 1;
+    if (fromEnd <= 2) { score += 12; reasons.push('GAR badge very old (+12)'); }
+    else if (fromEnd <= 4) { score += 8; reasons.push('GAR badge old (+8)'); }
+    else if (fromEnd <= 6) { score += 4; reasons.push('GAR badge somewhat old (+4)'); }
   }
 
   if (age < 7) { score += 35; reasons.push('Very new account (+35)'); }
@@ -466,7 +487,7 @@ function calculateScore(data) {
   if (!inv.isPrivate) {
     const clothing = (inv.shirts||0) + (inv.pants||0);
     if (clothing === 0 && age > 30) { score += 15; reasons.push('No clothing (+15)'); }
-    if (inv.gamepasses < 5 && age > 180) { score += 12; reasons.push(`Few gamepasses (${inv.gamepasses}) (+12)'); }
+    if (inv.gamepasses < 5 && age > 180) { score += 12; reasons.push(`Few gamepasses (+12)'); }
   }
 
   let category = 'LOW';
@@ -487,7 +508,7 @@ function renderContent() {
   const gar = d.garBadge;
   const {score, category, reasons} = calculateScore(d);
 
-  const badgeCls = category.includes('Auto-Failed') ? (category.includes('Fake') ? 'badge-auto-fail' : 'badge-high') :
+  const badgeCls = category.includes('Auto-Failed') ? 'badge-auto-fail' :
                    category === 'HIGH' ? 'badge-high' :
                    category === 'MEDIUM-HIGH' ? 'badge-medium-high' :
                    category === 'MEDIUM' ? 'badge-medium' : 'badge-low';
@@ -497,47 +518,43 @@ function renderContent() {
     el.panelBody.innerHTML = `
       <div class="alert ${category.includes('Auto-Failed') || category === 'HIGH' ? 'alert-error' : category === 'LOW' ? 'alert-success' : 'alert-warning'}">
         <strong>Alt Likelihood: <span class="badge ${badgeCls}">${category}</span></strong>
-        <div style="margin-top:10px;font-size:18px">Score: ${score}/100+</div>
+        <div style="margin-top:10px;font-size:18px">Score: ${score}+</div>
       </div>
-      <div class="section-title">Reasons</div>
+      <div class="section-title">Detection Reasons</div>
       <ul class="reasons-list">${reasons.map(r => `<li>${r}</li>`).join('')}</ul>
       <div class="section-title">Key Stats</div>
       <div class="info-grid">
-        <div class="info-item"><span class="info-label">Account Age</span><span class="info-value">${d.accountAge} days</span></div>
+        <div class="info-item"><span class="info-label">Age</span><span class="info-value">${d.accountAge} days</span></div>
         <div class="info-item"><span class="info-label">Real Badges</span><span class="info-value">${d.realBadges}</span></div>
-        <div class="info-item"><span class="info-label">Filtered Badges</span><span class="info-value">${gar.filteredBadges} (${gar.filteredPercentage}%)</span></div>
+        <div class="info-item"><span class="info-label">Fake %</span><span class="info-value">${gar.filteredPercentage}%</span></div>
         <div class="info-item"><span class="info-label">GAR Badge</span><span class="info-value">${gar.message}</span></div>
         <div class="info-item"><span class="info-label">Friends</span><span class="info-value">${d.friends}</span></div>
         <div class="info-item"><span class="info-label">Groups</span><span class="info-value">${d.groups}</span></div>
         ${inv.isPrivate ? '<div class="info-item"><span class="info-label">Inventory</span><span class="info-value">Private</span></div>' :
          `<div class="info-item"><span class="info-label">Clothing</span><span class="info-value">${(inv.shirts||0)+(inv.pants||0)}</span></div>
-          <div class="info-item"><span class="info-label">Game Passes</span><span class="info-value">${inv.gamepasses||0}</span></div>`}
-        <div class="info-item"><span class="info-label">Profile</span><span class="info-value"><a href="https://www.roblox.com/users/${currentUserId}/profile" target="_blank" style="color:#60a5fa">View on Roblox</a></span></div>
+          <div class="info-item"><span class="info-label">Gamepasses</span><span class="info-value">${inv.gamepasses||0}</span></div>`}
+        <div class="info-item"><span class="info-label">Profile</span><span class="info-value"><a href="https://www.roblox.com/users/${currentUserId}/profile" target="_blank" style="color:#60a5fa">View</a></span></div>
       </div>
     `;
   } else if (activeTab === 'badges') {
     el.panelTitle.textContent = 'Badge Analysis';
     el.panelBody.innerHTML = `
-      <div class="metric-card"><div class="metric-header"><div class="metric-title">Real Badges</div><div class="metric-value">${d.realBadges}</div></div></div>
-      <div class="metric-card"><div class="metric-header"><div class="metric-title">Fake/Suspicious Filtered</div><div class="metric-value">${gar.filteredBadges} (${gar.filteredPercentage}%)</div></div></div>
-      <div class="metric-card"><div class="metric-header"><div class="metric-title">GAR Welcome Badge</div><div class="metric-value">${gar.message} ${gar.found ? '(Page 1 = most recent)' : ''}</div></div></div>
+      <div class="metric-card"><div class="metric-title">Real Badges</div><div class="metric-value">${d.realBadges}</div></div>
+      <div class="metric-card"><div class="metric-title">Filtered Fake</div><div class="metric-value">${gar.filteredBadges} (${gar.filteredPercentage}%)</div></div>
+      <div class="metric-card"><div class="metric-title">GAR Badge</div><div class="metric-value">${gar.message}</div></div>
     `;
   } else if (activeTab === 'inventory') {
     el.panelTitle.textContent = 'Inventory';
-    if (inv.isPrivate) {
-      el.panelBody.innerHTML = '<div class="alert alert-error">Inventory is private – cannot retrieve items</div>';
-    } else {
-      el.panelBody.innerHTML = `
-        <div class="info-grid">
+    el.panelBody.innerHTML = inv.isPrivate 
+      ? '<div class="alert alert-error">Inventory is private</div>'
+      : `<div class="info-grid">
           <div class="info-item"><span class="info-label">Shirts</span><span class="info-value">${inv.shirts||0}</span></div>
           <div class="info-item"><span class="info-label">Pants</span><span class="info-value">${inv.pants||0}</span></div>
-          <div class="info-item"><span class="info-label">Accessories (Hats)</span><span class="info-value">${inv.accessories||0}</span></div>
-          <div class="info-item"><span class="info-label">Game Passes</span><span class="info-value">${inv.gamepasses||0}</span></div>
-        </div>
-      `;
-    }
+          <div class="info-item"><span class="info-label">Accessories</span><span class="info-value">${inv.accessories||0}</span></div>
+          <div class="info-item"><span class="info-label">Gamepasses</span><span class="info-value">${inv.gamepasses||0}</span></div>
+        </div>`;
   } else if (activeTab === 'social') {
-    el.panelTitle.textContent = 'Social Metrics';
+    el.panelTitle.textContent = 'Social';
     el.panelBody.innerHTML = `
       <div class="info-grid">
         <div class="info-item"><span class="info-label">Friends</span><span class="info-value">${d.friends}</span></div>
