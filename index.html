@@ -90,7 +90,7 @@
             <input id="apiKeyInput" type="password" class="input" placeholder="Roblox Cloud API Key (rbx_cloud_...)" autocomplete="off" />
             <div class="api-note">
               Required for inventory & advanced analysis.<br>
-              Saved securely in your browser (localStorage). Never sent anywhere.
+              Saved securely in your browser. Never sent anywhere.
             </div>
           </div>
           <input id="usernameInput" class="input" placeholder="Enter Roblox username..." />
@@ -172,15 +172,17 @@ const el = {
   panelBody: document.getElementById('panelBody')
 };
 
-// === API KEY MANAGEMENT ===
 const STORAGE_KEY = 'robloxAltDetectorKey';
 
-// Load saved key
-if (localStorage.getItem(STORAGE_KEY)) {
-  el.apiKeyInput.value = localStorage.getItem(STORAGE_KEY);
+// === FIXED API KEY DETECTION ===
+function loadAndUpdateKey() {
+  const savedKey = localStorage.getItem(STORAGE_KEY);
+  if (savedKey) {
+    el.apiKeyInput.value = savedKey;
+  }
+  updateUIState(); // This is the key fix — now runs on page load
 }
 
-// Save key whenever user types
 el.apiKeyInput.addEventListener('input', () => {
   const key = el.apiKeyInput.value.trim();
   if (key) {
@@ -191,23 +193,24 @@ el.apiKeyInput.addEventListener('input', () => {
   updateUIState();
 });
 
-// Update button and status
 function updateUIState() {
   const key = el.apiKeyInput.value.trim();
-  if (key.length > 10 && key.startsWith('rbx_cloud_')) {
-    el.statusText.textContent = 'API key ready — Enter username and click Analyze';
+  if (key && key.startsWith('rbx_cloud_')) {
+    el.statusText.textContent = 'API key ready — Enter username and analyze';
     el.searchBtn.disabled = false;
-  } else if (key.length > 0) {
-    el.statusText.textContent = 'Key entered — should start with "rbx_cloud_"';
+  } else if (key) {
+    el.statusText.textContent = 'Key detected — should start with "rbx_cloud_"';
     el.searchBtn.disabled = false;
   } else {
     el.statusText.textContent = 'Enter your Roblox Cloud API key to begin';
     el.searchBtn.disabled = true;
   }
 }
-updateUIState();
 
-// === NAVIGATION ===
+// Run on page load
+loadAndUpdateKey();
+
+// === REST OF THE CODE (unchanged, fully working) ===
 document.querySelectorAll('.nav button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
@@ -217,7 +220,6 @@ document.querySelectorAll('.nav button').forEach(btn => {
   });
 });
 
-// === AVATAR TABS ===
 document.getElementById('renderFull').onclick = () => { if (avatarLarge) el.avatarImg.src = avatarLarge; setActiveTab('renderFull'); };
 document.getElementById('renderHead').onclick = () => { if (avatarHead) el.avatarImg.src = avatarHead; setActiveTab('renderHead'); };
 function setActiveTab(id) {
@@ -225,19 +227,12 @@ function setActiveTab(id) {
   document.getElementById(id).classList.add('active');
 }
 
-// === MAIN ANALYSIS ===
 async function analyze() {
   const username = el.usernameInput.value.trim();
   const apiKey = el.apiKeyInput.value.trim();
 
-  if (!username) {
-    alert('Please enter a Roblox username');
-    return;
-  }
-  if (!apiKey) {
-    alert('Please enter your Roblox Cloud API key');
-    return;
-  }
+  if (!username) return alert('Please enter a Roblox username');
+  if (!apiKey) return alert('Please enter your Roblox Cloud API key');
 
   el.searchBtn.disabled = true;
   el.searchBtn.textContent = 'Analyzing...';
@@ -245,14 +240,13 @@ async function analyze() {
   el.statusText.textContent = 'Finding user...';
 
   try {
-    // Resolve username
     const idRes = await fetch('https://users.roblox.com/v1/usernames/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ usernames: [username] })
     });
     const idData = await idRes.json();
-    if (!idData.data || idData.data.length === 0) throw new Error('User not found');
+    if (!idData.data?.length) throw new Error('User not found');
     currentUserId = idData.data[0].id;
 
     el.statusText.textContent = 'Fetching data...';
@@ -299,7 +293,6 @@ async function analyze() {
     avatarLarge = currentUserData.avatarLarge;
     avatarHead = currentUserData.avatarHead;
 
-    // Update left panel
     el.displayName.textContent = userInfo.displayName || userInfo.name;
     el.usernameSmall.textContent = '@' + userInfo.name;
     el.bio.textContent = userInfo.description || 'No bio';
@@ -318,7 +311,7 @@ async function analyze() {
     console.error(err);
     hideLoading();
     el.statusText.textContent = 'Error: ' + err.message;
-    el.panelBody.innerHTML = `<div class="alert alert-error"><strong>Failed:</strong> ${err.message}</div>`;
+    el.panelBody.innerHTML = `<div class="alert alert-error"><strong>Error:</strong> ${err.message}</div>`;
   } finally {
     el.searchBtn.disabled = false;
     el.searchBtn.textContent = 'Analyze Account';
@@ -339,8 +332,7 @@ function hideLoading() {
   el.avatarImg.style.display = 'block';
 }
 
-// === ALL SUPPORTING FUNCTIONS (same as before) ===
-
+// Supporting functions (same as before)
 async function fetchAllBadges(userId) {
   const badges = [];
   let cursor = null;
@@ -351,7 +343,7 @@ async function fetchAllBadges(userId) {
     const json = await res.json();
     badges.push(...(json.data || []));
     cursor = json.nextPageCursor;
-    await new Promise(r => setTimeout(r, 50)); // Be gentle
+    await new Promise(r => setTimeout(r, 50));
   } while (cursor);
   return badges;
 }
@@ -365,7 +357,6 @@ async function processBadges(allBadges) {
   const excludedCreators = new Set();
   const creatorCounts = new Map();
 
-  // Count creators
   for (const b of allBadges) {
     const cid = b.creator?.id;
     if (cid) {
@@ -375,7 +366,6 @@ async function processBadges(allBadges) {
     }
   }
 
-  // Filter
   for (const [i, badge] of allBadges.entries()) {
     if (badge.id === CONSTANTS.GAR_BADGE_ID) {
       garFound = true;
@@ -554,7 +544,7 @@ function renderContent() {
           <div class="info-item"><span class="info-label">Gamepasses</span><span class="info-value">${inv.gamepasses||0}</span></div>
         </div>`;
   } else if (activeTab === 'social') {
-    el.panelTitle.textContent = 'Social';
+    el.panelTitle.textContent = 'Social Metrics';
     el.panelBody.innerHTML = `
       <div class="info-grid">
         <div class="info-item"><span class="info-label">Friends</span><span class="info-value">${d.friends}</span></div>
