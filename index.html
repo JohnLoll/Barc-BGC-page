@@ -175,19 +175,20 @@ const el = {
 
 const STORAGE_KEY = 'robloxAltDetectorKey';
 
-// Load saved key on start
+// Load saved key on page load
 function loadSavedKey() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
     el.apiKeyInput.value = saved;
-    updateStatus('API key loaded from browser storage');
+    el.statusText.textContent = 'API key loaded — Ready to analyze';
     el.searchBtn.disabled = false;
   } else {
-    updateStatus('Enter your API key and click "Save API Key"');
+    el.statusText.textContent = 'Enter your API key and click "Save API Key"';
+    el.searchBtn.disabled = true;
   }
 }
 
-// Save key when "Save API Key" button is clicked
+// Save key when button clicked
 el.saveKeyBtn.addEventListener('click', () => {
   const key = el.apiKeyInput.value.trim();
   if (!key) {
@@ -195,25 +196,21 @@ el.saveKeyBtn.addEventListener('click', () => {
     return;
   }
   localStorage.setItem(STORAGE_KEY, key);
-  updateStatus('API key saved successfully!');
+  el.statusText.textContent = 'API key saved! Ready to analyze.';
   el.searchBtn.disabled = false;
 });
 
-// Optional: also save on Enter in key field
+// Allow Enter key in API field to save
 el.apiKeyInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     el.saveKeyBtn.click();
   }
 });
 
-function updateStatus(message) {
-  el.statusText.textContent = message;
-}
-
 // Initial load
 loadSavedKey();
 
-// === NAVIGATION & REST OF CODE (unchanged) ===
+// Sidebar navigation
 document.querySelectorAll('.nav button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
@@ -223,19 +220,28 @@ document.querySelectorAll('.nav button').forEach(btn => {
   });
 });
 
-document.getElementById('renderFull').onclick = () => { if (avatarLarge) el.avatarImg.src = avatarLarge; setActiveTab('renderFull'); };
-document.getElementById('renderHead').onclick = () => { if (avatarHead) el.avatarImg.src = avatarHead; setActiveTab('renderHead'); };
-function setActiveTab(id) {
+// Avatar tabs
+document.getElementById('renderFull').addEventListener('click', () => {
+  if (avatarLarge) el.avatarImg.src = avatarLarge;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
+  document.getElementById('renderFull').classList.add('active');
+});
 
+document.getElementById('renderHead').addEventListener('click', () => {
+  if (avatarHead) el.avatarImg.src = avatarHead;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('renderHead').classList.add('active');
+});
+
+// Analyze button
 async function analyze() {
   const username = el.usernameInput.value.trim();
   const apiKey = el.apiKeyInput.value.trim();
 
-  if (!username) return alert('Please enter a Roblox username');
-  if (!apiKey) return alert('Please save your API key first');
+  if (!username) {
+    alert('Please enter a Roblox username');
+    return;
+  }
 
   el.searchBtn.disabled = true;
   el.searchBtn.textContent = 'Analyzing...';
@@ -321,8 +327,10 @@ async function analyze() {
   }
 }
 
-el.searchBtn.onclick = analyze;
-el.usernameInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !el.searchBtn.disabled) analyze(); });
+el.searchBtn.addEventListener('click', analyze);
+el.usernameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !el.searchBtn.disabled) analyze();
+});
 
 function showLoading() {
   el.avatarSkeleton.style.display = 'block';
@@ -335,9 +343,7 @@ function hideLoading() {
   el.avatarImg.style.display = 'block';
 }
 
-// [All supporting functions remain the same — fetchAllBadges, processBadges, isValidBadge, fetchAllInventory, calculateScore, renderContent]
-// (Same as previous version)
-
+// All supporting functions (same as before)
 async function fetchAllBadges(userId) {
   const badges = [];
   let cursor = null;
