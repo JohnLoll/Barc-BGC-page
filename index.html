@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Advanced Roblox Alt Detector</title>
-  <meta name="description" content="Professional Roblox alt detection with real badge filtering, GAR position, and inventory analysis." />
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#0a0e27;color:#e8eaf6;line-height:1.6}
@@ -19,13 +18,10 @@
     .toprow{display:flex;flex-direction:column;gap:16px;margin-bottom:32px}
     @media(min-width:768px){.toprow{flex-direction:row;justify-content:space-between;align-items:center}}
     .search-box{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-    .key-group{display:flex;gap:8px;align-items:center;max-width:500px;flex:1}
-    .input{padding:12px 16px;border-radius:12px;border:2px solid #334155;background:#1e293b;color:#f1f5f9;font-size:15px;transition:all .2s;flex:1}
+    .input{padding:12px 16px;border-radius:12px;border:2px solid #334155;background:#1e293b;color:#f1f5f9;font-size:15px;transition:all .2s;flex:1;min-width:200px}
     .input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
-    .btn{padding:12px 20px;border-radius:12px;border:0;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;cursor:pointer;font-weight:600;font-size:15px;transition:all .2s;box-shadow:0 4px 12px rgba(59,130,246,.3);white-space:nowrap}
+    .btn{padding:12px 28px;border-radius:12px;border:0;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;cursor:pointer;font-weight:600;font-size:15px;transition:all .2s;box-shadow:0 4px 12px rgba(59,130,246,.3)}
     .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(59,130,246,.4)}
-    .btn:disabled{background:#334155;cursor:not-allowed;opacity:0.6;transform:none}
-    .btn-small{padding:12px 16px;font-size:14px}
     .status{color:#94a3b8;font-size:14px;padding:8px 16px;background:#1e293b;border-radius:8px}
     .grid{display:grid;grid-template-columns:1fr;gap:24px}
     @media(min-width:1024px){.grid{grid-template-columns:380px 1fr}}
@@ -61,12 +57,9 @@
     .alert-warning{background:#422006;border-color:#f59e0b;color:#fbbf24}
     .alert-error{background:#450a0a;border-color:#dc2626;color:#f87171}
     .alert-success{background:#052e16;border-color:#16a34a;color:#4ade80}
-    .api-note{color:#94a3b8;font-size:14px;margin-top:8px;line-height:1.4}
     @media(max-width:768px){
       .sidebar{display:none}
       .search-box{flex-direction:column;align-items:stretch}
-      .key-group{flex-direction:column}
-      .btn-small{width:100%}
       .stats-row{grid-template-columns:1fr}
     }
   </style>
@@ -82,21 +75,17 @@
         <button data-tab="social">Social</button>
       </div>
       <div style="margin-top:auto;font-size:13px;color:#64748b;text-align:center;padding-top:20px;">
-        v3.0 • Secure & Private<br>Key stored only in your browser
+        v3.0 • Personal Use<br>API key hardcoded
       </div>
     </aside>
 
     <main class="main">
       <div class="toprow">
         <div class="search-box">
-          <div class="key-group">
-            <input id="apiKeyInput" type="password" class="input" placeholder="Roblox Cloud API Key (rbx_cloud_...)" autocomplete="off" />
-            <button id="saveKeyBtn" class="btn btn-small">Save API Key</button>
-          </div>
           <input id="usernameInput" class="input" placeholder="Enter Roblox username..." />
-          <button id="searchBtn" class="btn" disabled>Analyze Account</button>
+          <button id="searchBtn" class="btn">Analyze Account</button>
         </div>
-        <div class="status" id="statusText">Enter your API key and click "Save API Key"</div>
+        <div class="status" id="statusText">Ready — Enter a username and click Analyze</div>
       </div>
 
       <div class="grid">
@@ -125,12 +114,7 @@
         <div class="card">
           <div class="section-title" id="panelTitle">Alt Detection Analysis</div>
           <div id="panelBody">
-            <div class="alert alert-warning">
-              <strong>Step 1: Save Your API Key</strong><br><br>
-              Enter your Roblox Cloud API key above and click <strong>Save API Key</strong>.<br>
-              This will unlock the username field and analysis.<br><br>
-              Your key is saved only in your browser — never sent anywhere.
-            </div>
+            <div class="alert alert-warning">Enter a Roblox username above and click Analyze to begin.</div>
           </div>
         </div>
       </div>
@@ -138,6 +122,14 @@
   </div>
 
 <script>
+// ==================== PUT YOUR API KEY HERE ====================
+const MY_API_KEY = 'poTgisiUbkaMmmCOUTd7y0gHVeVpEGhw7Dd2gTcX99PmaQWZZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNkluTnBaeTB5TURJeExUQTNMVEV6VkRFNE9qVXhPalE1V2lJc0luUjVjQ0k2SWtwWFZDSjkuZXlKaVlYTmxRWEJwUzJWNUlqb2ljRzlVWjJsemFWVmlhMkZOYlcxRFQxVlVaRGQ1TUdkSVZtVldjRVZIYUhjM1JHUXlaMVJqV0RrNVVHMWhVVmRhSWl3aWIzZHVaWEpKWkNJNklqSTVOamcwTURNMk5pSXNJbUYxWkNJNklsSnZZbXh2ZUVsdWRHVnlibUZzSWl3aWFYTnpJam9pUTJ4dmRXUkJkWFJvWlc1MGFXTmhkR2x2YmxObGNuWnBZMlVpTENKbGVIQWlPakUzTkRnNU1UYzRNek1zSW1saGRDSTZNVGMwT0RreE5ESXpNeXdpYm1KbUlqb3hOelE0T1RFME1qTXpmUS5WTzdZLTRwRnpFU0RaR2dHVWZBN1YyNWdta21GdlNkT2x0cEp4eGF3WmNhNnd3bjk0eGxmU2V1M2FLXzYwUWFnMkxlRDJBSVBEQXdhUkc5b19Ec2dfTkUwbTZDSkdnVm9MODdMQzhTbjNSZzQ3OVhmSDNEQ2RGQ2kxTXczMjV5a2JKZ1lwYklYa09xOWZkSF9Pd1M1d09WQURrdE9EOHRTbDZyUEloUUg4eFd1UUpqWDg3VUdOX29wVHAwZlZ3NUotQjJZa25KUlZsb3Z5NTRaVEJQa09YTVJoZWxOTkFVLS11UVhGMGppMWRBRkxnc3BuSUNXOUJyZ2lpeURsWkZnWklfTzZMd1FNUnl4SDBmdVJyaWdUQ3gxMF9FRk1uRVJVTm5Kc3QybTR4MTN5QnZRRTVhVFY1N0lVLUhWZXFUUEswYldkaTUwLUxJQ2VZeklQbjBjSGc='; // ← Replace this with your actual key
+// ==============================================================
+
+if (MY_API_KEY === 'rbx_cloud_YOUR_KEY_HERE' || !MY_API_KEY) {
+  alert('Please edit the code and replace "rbx_cloud_YOUR_KEY_HERE" with your real Roblox Cloud API key.');
+}
+
 const CONSTANTS = {
   GAR_BADGE_ID: 2124527902,
   BADGES_PER_PAGE: 30,
@@ -155,8 +147,6 @@ let activeTab = 'overview';
 let avatarLarge = null, avatarHead = null;
 
 const el = {
-  apiKeyInput: document.getElementById('apiKeyInput'),
-  saveKeyBtn: document.getElementById('saveKeyBtn'),
   usernameInput: document.getElementById('usernameInput'),
   searchBtn: document.getElementById('searchBtn'),
   statusText: document.getElementById('statusText'),
@@ -173,51 +163,7 @@ const el = {
   panelBody: document.getElementById('panelBody')
 };
 
-const STORAGE_KEY = 'robloxAltDetectorKey';
-
-// Load saved key on page load
-function loadSavedKey() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    el.apiKeyInput.value = saved;
-    el.statusText.textContent = 'API key loaded — Ready to analyze';
-    el.searchBtn.disabled = false;
-  } else {
-    el.statusText.textContent = 'Enter your API key and click "Save API Key"';
-    el.searchBtn.disabled = true;
-  }
-}
-
-// Save key when "Save API Key" is clicked
-el.saveKeyBtn.addEventListener('click', () => {
-  const key = el.apiKeyInput.value.trim();
-  if (!key) {
-    alert('Please enter your Roblox Cloud API key first');
-    return;
-  }
-  localStorage.setItem(STORAGE_KEY, key);
-  el.statusText.textContent = 'API key saved successfully! You can now enter a username.';
-  el.searchBtn.disabled = false;
-});
-
-// Press Enter in key field = click save button
-el.apiKeyInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    el.saveKeyBtn.click();
-  }
-});
-
-// Press Enter in username field = analyze (if button enabled)
-el.usernameInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !el.searchBtn.disabled) {
-    analyze();
-  }
-});
-
-// Initial load
-loadSavedKey();
-
-// Sidebar navigation
+// Navigation
 document.querySelectorAll('.nav button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
@@ -240,11 +186,9 @@ document.getElementById('renderHead').addEventListener('click', () => {
   document.getElementById('renderHead').classList.add('active');
 });
 
-// Analyze function
+// Analyze
 async function analyze() {
   const username = el.usernameInput.value.trim();
-  const apiKey = el.apiKeyInput.value.trim();
-
   if (!username) {
     alert('Please enter a Roblox username');
     return;
@@ -253,7 +197,7 @@ async function analyze() {
   el.searchBtn.disabled = true;
   el.searchBtn.textContent = 'Analyzing...';
   showLoading();
-  el.statusText.textContent = 'Resolving user...';
+  el.statusText.textContent = 'Finding user...';
 
   try {
     const idRes = await fetch('https://users.roblox.com/v1/usernames/users', {
@@ -286,7 +230,7 @@ async function analyze() {
       fetch(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json()),
       fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json()),
       fetchAllBadges(currentUserId),
-      fetchAllInventory(currentUserId, apiKey)
+      fetchAllInventory(currentUserId, MY_API_KEY)
     ]);
 
     const ageDays = Math.floor((Date.now() - new Date(userInfo.created)) / 86400000);
@@ -335,6 +279,9 @@ async function analyze() {
 }
 
 el.searchBtn.addEventListener('click', analyze);
+el.usernameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') analyze();
+});
 
 function showLoading() {
   el.avatarSkeleton.style.display = 'block';
@@ -347,7 +294,7 @@ function hideLoading() {
   el.avatarImg.style.display = 'block';
 }
 
-// Supporting functions (same as before)
+// All supporting functions (same as before)
 async function fetchAllBadges(userId) {
   const badges = [];
   let cursor = null;
