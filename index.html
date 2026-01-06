@@ -3,32 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Roblox Alt Detector</title>
-  <meta name="description" content="Detect potential Roblox alternate accounts using public and cloud API data." />
+  <title>Advanced Roblox Alt Detector</title>
+  <meta name="description" content="Professional Roblox alt account detection with real badge filtering, GAR badge position, and inventory analysis." />
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#0a0e27;color:#e8eaf6;line-height:1.6}
     .app{display:flex;min-height:100vh}
     .sidebar{width:260px;background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);padding:24px;display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,0.4)}
-    .brand{font-size:20px;font-weight:800;margin-bottom:32px;color:#60a5fa;text-align:center;letter-spacing:-0.5px}
+    .brand{font-size:20px;font-weight:800;margin-bottom:32px;color:#60a5fa;text-align:center}
     .nav{display:flex;flex-direction:column;gap:8px}
-    .nav button{background:transparent;border:0;color:#cbd5e1;padding:14px 16px;border-radius:10px;text-align:left;cursor:pointer;font-weight:500;transition:all 0.2s;font-size:15px}
+    .nav button{background:transparent;border:0;color:#cbd5e1;padding:14px 16px;border-radius:10px;text-align:left;cursor:pointer;font-weight:500;transition:all .2s;font-size:15px}
     .nav button:hover{background:#1e293b;color:#f1f5f9}
-    .nav button.active{background:#3b82f6;color:white;font-weight:600;box-shadow:0 4px 12px rgba(59,130,246,0.4)}
+    .nav button.active{background:#3b82f6;color:white;font-weight:600;box-shadow:0 4px 12px rgba(59,130,246,.4)}
     .main{flex:1;padding:32px;overflow-y:auto}
     .toprow{display:flex;flex-direction:column;gap:16px;margin-bottom:32px}
     @media(min-width:768px){.toprow{flex-direction:row;justify-content:space-between;align-items:center}}
     .search-box{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-    .input{padding:12px 16px;border-radius:12px;border:2px solid #334155;background:#1e293b;color:#f1f5f9;font-size:15px;transition:all 0.2s}
-    .input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.2)}
-    .btn{padding:12px 28px;border-radius:12px;border:0;background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);color:white;cursor:pointer;font-weight:600;font-size:15px;transition:all 0.2s;box-shadow:0 4px 12px rgba(59,130,246,0.3)}
-    .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(59,130,246,0.4)}
+    .input{padding:12px 16px;border-radius:12px;border:2px solid #334155;background:#1e293b;color:#f1f5f9;font-size:15px;transition:all .2s;flex:1;min-width:200px}
+    .input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
+    .btn{padding:12px 28px;border-radius:12px;border:0;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;cursor:pointer;font-weight:600;font-size:15px;transition:all .2s;box-shadow:0 4px 12px rgba(59,130,246,.3)}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(59,130,246,.4)}
+    .btn:disabled{background:#334155;cursor:not-allowed;opacity:0.6}
     .status{color:#94a3b8;font-size:14px;padding:8px 16px;background:#1e293b;border-radius:8px}
     .grid{display:grid;grid-template-columns:1fr;gap:24px}
     @media(min-width:1024px){.grid{grid-template-columns:380px 1fr}}
-    .card{background:#1e293b;padding:24px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:1px solid #334155}
+    .card{background:#1e293b;padding:24px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.3);border:1px solid #334155}
     .avatar-section{display:flex;flex-direction:column;align-items:center;gap:20px}
-    .avatar{width:240px;height:240px;border-radius:16px;object-fit:cover;background:#0f172a;border:4px solid #334155;box-shadow:0 12px 32px rgba(0,0,0,0.5)}
+    .avatar{width:240px;height:240px;border-radius:16px;object-fit:cover;background:#0f172a;border:4px solid #334155;box-shadow:0 12px 32px rgba(0,0,0,.5)}
     .user-info{text-align:center;width:100%}
     .display-name{font-size:26px;font-weight:700;margin-bottom:6px}
     .username{color:#94a3b8;font-size:16px;margin-bottom:16px}
@@ -38,39 +39,30 @@
     .stat-label{color:#94a3b8;font-size:14px;margin-bottom:6px}
     .stat-value{font-size:22px;font-weight:700;color:#60a5fa}
     .tabs{display:flex;gap:12px;margin-top:20px;width:100%}
-    .tab{flex:1;padding:12px;border-radius:12px;background:#0f172a;cursor:pointer;font-weight:600;text-align:center;transition:all 0.2s;border:2px solid transparent;font-size:15px}
+    .tab{flex:1;padding:12px;border-radius:12px;background:#0f172a;cursor:pointer;font-weight:600;text-align:center;transition:all .2s;border:2px solid transparent}
     .tab:hover{border-color:#3b82f6}
-    .tab.active{background:#3b82f6;color:white;box-shadow:0 4px 12px rgba(59,130,246,0.4)}
+    .tab.active{background:#3b82f6;color:white;box-shadow:0 4px 12px rgba(59,130,246,.4)}
     .section-title{font-size:22px;font-weight:700;margin-bottom:20px;color:#f1f5f9}
     .info-grid{display:grid;gap:12px}
     .info-item{display:flex;justify-content:space-between;padding:14px;background:#0f172a;border-radius:12px;border-left:4px solid #3b82f6}
     .info-label{color:#94a3b8;font-weight:500;font-size:15px}
     .info-value{color:#f1f5f9;font-weight:600;font-size:15px}
     .badge{display:inline-block;padding:8px 14px;border-radius:8px;font-size:14px;font-weight:700;margin-right:8px;margin-bottom:8px}
+    .badge-auto-fail{background:#7c3aed;color:white}
     .badge-high{background:#ef4444;color:white}
     .badge-medium-high{background:#f97316;color:white}
     .badge-medium{background:#eab308;color:#0a0e27}
     .badge-low{background:#22c55e;color:white}
-    .badge-auto-fail{background:#7c3aed;color:white}
     .skeleton{background:linear-gradient(90deg,#1e293b 25%,#334155 50%,#1e293b 75%);background-size:200% 100%;animation:shimmer 1.8s infinite;border-radius:12px}
     @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-    .metric-card{background:#0f172a;padding:20px;border-radius:14px;margin-bottom:16px;border:1px solid #334155}
-    .metric-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-    .metric-title{font-weight:600;color:#94a3b8;font-size:15px}
-    .metric-value{font-size:32px;font-weight:700;color:#60a5fa}
-    .progress-bar{width:100%;height:10px;background:#334155;border-radius:5px;overflow:hidden;margin-top:10px}
-    .progress-fill{height:100%;background:linear-gradient(90deg,#3b82f6,#8b5cf6);transition:width 0.4s ease}
-    .reasons-list{list-style:none;padding:0}
-    .reasons-list li{padding:14px;background:#0f172a;border-radius:10px;margin-bottom:10px;border-left:4px solid #3b82f6;font-size:15px}
     .alert{padding:20px;border-radius:14px;margin-bottom:20px;border:2px solid;font-size:15px;font-weight:500}
     .alert-warning{background:#422006;border-color:#f59e0b;color:#fbbf24}
     .alert-error{background:#450a0a;border-color:#dc2626;color:#f87171}
     .alert-success{background:#052e16;border-color:#16a34a;color:#4ade80}
-    @media(max-width:1024px){.sidebar{width:220px;padding:20px}}
+    .api-note{color:#94a3b8;font-size:14px;margin-top:8px}
     @media(max-width:768px){
       .sidebar{display:none}
       .search-box{flex-direction:column;align-items:stretch}
-      .input{width:100%}
       .stats-row{grid-template-columns:1fr}
     }
   </style>
@@ -78,32 +70,32 @@
 <body>
   <div class="app">
     <aside class="sidebar">
-      <div class="brand">🔍 Alt Detector</div>
+      <div class="brand">Advanced Alt Detector</div>
       <div class="nav">
         <button class="active" data-tab="overview">Overview</button>
-        <button data-tab="detailed">Detailed Analysis</button>
-        <button data-tab="inventory">Inventory</button>
         <button data-tab="badges">Badges</button>
-        <button data-tab="groups">Groups</button>
+        <button data-tab="inventory">Inventory</button>
         <button data-tab="social">Social</button>
       </div>
       <div style="margin-top:auto;font-size:13px;color:#64748b;text-align:center;padding-top:20px;">
-        Alt Detection System v2.1<br>GitHub Pages Ready
+        v3.0 • Requires Roblox Cloud API Key
       </div>
     </aside>
 
     <main class="main">
       <div class="toprow">
         <div class="search-box">
-          <input id="apiKeyInput" class="input" placeholder="Roblox Cloud API Key (rbx_cloud_...)" style="width:320px;max-width:100%" />
-          <input id="usernameInput" class="input" placeholder="Enter Roblox username..." style="flex:1;min-width:200px" />
-          <button id="searchBtn" class="btn">Analyze Account</button>
+          <div style="flex:1">
+            <input id="apiKeyInput" class="input" placeholder="Roblox Cloud API Key (rbx_cloud_...)" />
+            <div class="api-note">Required for inventory & advanced analysis. Saved only in your browser.</div>
+          </div>
+          <input id="usernameInput" class="input" placeholder="Enter Roblox username..." />
+          <button id="searchBtn" class="btn" disabled>Analyze</button>
         </div>
-        <div class="status" id="statusText">Enter API key to begin</div>
+        <div class="status" id="statusText">Enter your Roblox Cloud API key to begin</div>
       </div>
 
       <div class="grid">
-        <!-- Left: Avatar & Info -->
         <div class="card">
           <div class="avatar-section">
             <div id="avatarSkeleton" class="skeleton" style="width:240px;height:240px;display:none"></div>
@@ -114,22 +106,10 @@
               <div id="bio" class="bio" style="display:none">No bio</div>
             </div>
             <div class="stats-row">
-              <div class="stat-box">
-                <div class="stat-label">Account Age</div>
-                <div class="stat-value" id="accountAge">—</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">Friends</div>
-                <div class="stat-value" id="friendsCount">—</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">Followers</div>
-                <div class="stat-value" id="followersCount">—</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">Following</div>
-                <div class="stat-value" id="followingCount">—</div>
-              </div>
+              <div class="stat-box"><div class="stat-label">Account Age</div><div class="stat-value" id="accountAge">—</div></div>
+              <div class="stat-box"><div class="stat-label">Friends</div><div class="stat-value" id="friendsCount">—</div></div>
+              <div class="stat-box"><div class="stat-label">Followers</div><div class="stat-value" id="followersCount">—</div></div>
+              <div class="stat-box"><div class="stat-label">Following</div><div class="stat-value" id="followingCount">—</div></div>
             </div>
             <div class="tabs">
               <div id="renderFull" class="tab active">Full Body</div>
@@ -138,11 +118,14 @@
           </div>
         </div>
 
-        <!-- Right: Dynamic Content -->
         <div class="card">
-          <div class="section-title" id="panelTitle">Account Analysis</div>
+          <div class="section-title" id="panelTitle">Alt Detection Analysis</div>
           <div id="panelBody">
-            <div class="alert alert-warning">Enter a username and your Roblox Cloud API key to analyze an account.</div>
+            <div class="alert alert-warning">
+              <strong>API Key Required</strong><br>
+              This tool uses the official Roblox Cloud API to access inventory and perform advanced detection.<br><br>
+              You must enter a valid <code>rbx_cloud_...</code> API key to analyze accounts.
+            </div>
           </div>
         </div>
       </div>
@@ -150,11 +133,21 @@
   </div>
 
 <script>
+const CONSTANTS = {
+  GAR_BADGE_ID: 2124527902,
+  BADGES_PER_PAGE: 30,
+  ROBLOX_CREATOR_ID: 1
+};
+
+const BADGE_BLACKLIST = {
+  GROUPS: [12812691,33902982,5088172,15750958230,11858305,32488102,13617167,4705120,5218018],
+  KEYWORDS: ['obby','easy','free','quick','simple','fast','auto','afk','idle','click','simulator','tycoon','farm','grind','noob','pro','legend','master','expert','stage','camp','level','collect','find','touch','press','walk','run','jump','badge','drop','welcome','visitor']
+};
+
 let currentUserId = null;
 let currentUserData = null;
 let activeTab = 'overview';
-let avatarLarge = null;
-let avatarHead = null;
+let avatarLarge = null, avatarHead = null;
 
 const el = {
   apiKeyInput: document.getElementById('apiKeyInput'),
@@ -168,240 +161,4 @@ const el = {
   bio: document.getElementById('bio'),
   accountAge: document.getElementById('accountAge'),
   friendsCount: document.getElementById('friendsCount'),
-  followersCount: document.getElementById('followersCount'),
-  followingCount: document.getElementById('followingCount'),
-  panelTitle: document.getElementById('panelTitle'),
-  panelBody: document.getElementById('panelBody')
-};
-
-// Load saved API key
-if (localStorage.getItem('robloxApiKey')) {
-  el.apiKeyInput.value = localStorage.getItem('robloxApiKey');
-  el.statusText.textContent = 'API key loaded — Ready to analyze';
-}
-
-// Save API key
-el.apiKeyInput.addEventListener('change', () => {
-  const key = el.apiKeyInput.value.trim();
-  if (key) {
-    localStorage.setItem('robloxApiKey', key);
-    el.statusText.textContent = 'API key saved';
-  }
-});
-
-// Sidebar navigation
-document.querySelectorAll('.nav button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeTab = btn.dataset.tab;
-    renderContent();
-  });
-});
-
-// Search
-el.searchBtn.addEventListener('click', analyzeAccount);
-el.usernameInput.addEventListener('keydown', e => { if (e.key === 'Enter') analyzeAccount(); });
-
-// Avatar tabs
-document.getElementById('renderFull').addEventListener('click', () => {
-  if (avatarLarge) el.avatarImg.src = avatarLarge;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('renderFull').classList.add('active');
-});
-document.getElementById('renderHead').addEventListener('click', () => {
-  if (avatarHead) el.avatarImg.src = avatarHead;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('renderHead').classList.add('active');
-});
-
-function showLoading() {
-  el.avatarSkeleton.style.display = 'block';
-  el.avatarImg.style.display = 'none';
-  el.bio.style.display = 'none';
-  el.panelBody.innerHTML = '<div class="skeleton" style="height:500px;border-radius:16px"></div>';
-}
-
-function hideLoading() {
-  el.avatarSkeleton.style.display = 'none';
-  el.avatarImg.style.display = 'block';
-}
-
-async function analyzeAccount() {
-  const username = el.usernameInput.value.trim();
-  const apiKey = el.apiKeyInput.value.trim();
-
-  if (!apiKey) return alert('Please enter your Roblox Cloud API key (starts with rbx_cloud_)');
-  if (!username) return alert('Please enter a Roblox username');
-
-  showLoading();
-  el.statusText.textContent = 'Finding user...';
-
-  try {
-    // Resolve username to ID
-    const res = await fetch('https://users.roblox.com/v1/usernames/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usernames: [username] })
-    });
-    const data = await res.json();
-    if (!data.data || data.data.length === 0) throw new Error('User not found');
-
-    currentUserId = data.data[0].id;
-    el.statusText.textContent = 'Loading profile data...';
-
-    // Fetch everything in parallel
-    const [
-      userInfo,
-      friends,
-      followers,
-      following,
-      groups,
-      badges,
-      avatarRes,
-      headshotRes,
-      inventory
-    ] = await Promise.all([
-      fetch(`https://users.roblox.com/v1/users/${currentUserId}`).then(r => r.json()),
-      fetch(`https://friends.roblox.com/v1/users/${currentUserId}/friends/count`).then(r => r.json()),
-      fetch(`https://friends.roblox.com/v1/users/${currentUserId}/followers/count`).then(r => r.json()),
-      fetch(`https://friends.roblox.com/v1/users/${currentUserId}/followings/count`).then(r => r.json()),
-      fetch(`https://groups.roblox.com/v2/users/${currentUserId}/groups/roles`).then(r => r.json()),
-      fetch(`https://badges.roblox.com/v1/users/${currentUserId}/badges?limit=100&sortOrder=Desc`).then(r => r.json()),
-      fetch(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json()),
-      fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json()),
-      fetchInventory(currentUserId, apiKey)
-    ]);
-
-    const created = new Date(userInfo.created);
-    const ageDays = Math.floor((Date.now() - created) / 86400000);
-
-    currentUserData = {
-      userInfo,
-      accountAgeDays: ageDays,
-      friends: friends.count || 0,
-      followers: followers.count || 0,
-      following: following.count || 0,
-      groups: groups.data || [],
-      badges: badges.data || [],
-      badgeCount: badges.data?.length || 0,
-      avatarUrl: avatarRes.data?.[0]?.imageUrl || null,
-      headshotUrl: headshotRes.data?.[0]?.imageUrl || null,
-      inventory
-    };
-
-    avatarLarge = currentUserData.avatarUrl;
-    avatarHead = currentUserData.headshotUrl;
-
-    // Update UI
-    el.displayName.textContent = userInfo.displayName || userInfo.name;
-    el.usernameSmall.textContent = '@' + userInfo.name;
-    el.bio.textContent = userInfo.description || 'No bio';
-    el.bio.style.display = userInfo.description ? 'block' : 'none';
-    el.accountAge.textContent = ageDays + 'd';
-    el.friendsCount.textContent = currentUserData.friends;
-    el.followersCount.textContent = currentUserData.followers;
-    el.followingCount.textContent = currentUserData.following;
-    if (avatarLarge) el.avatarImg.src = avatarLarge;
-
-    hideLoading();
-    el.statusText.textContent = 'Analysis complete!';
-    renderContent();
-
-  } catch (err) {
-    hideLoading();
-    el.statusText.textContent = 'Error: ' + err.message;
-    el.panelBody.innerHTML = `<div class="alert alert-error">Failed to load data: ${err.message}</div>`;
-  }
-}
-
-async function fetchInventory(userId, apiKey) {
-  const inv = { shirts:0, pants:0, accessories:0, gamepasses:0, isPrivate:false };
-  const types = [
-    {k:'shirts', f:'CLASSIC_SHIRT'},
-    {k:'pants', f:'CLASSIC_PANTS'},
-    {k:'accessories', f:'HAT'},
-    {k:'gamepasses', f:'gamePasses=true'}
-  ];
-
-  for (const t of types) {
-    const url = t.k === 'gamepasses'
-      ? `https://apis.roblox.com/cloud/v2/users/${userId}/inventory-items?maxPageSize=100&filter=${t.f}`
-      : `https://apis.roblox.com/cloud/v2/users/${userId}/inventory-items?maxPageSize=100&filter=inventoryItemAssetTypes=${t.f}`;
-
-    try {
-      const res = await fetch(url, { headers: { 'x-api-key': apiKey } });
-      if (res.status === 403) { inv.isPrivate = true; break; }
-      if (res.ok) {
-        const json = await res.json();
-        inv[t.k] = json.inventoryItems?.length || 0;
-      }
-    } catch {}
-  }
-  return inv;
-}
-
-function calculateScore(data) {
-  let score = 0;
-  const reasons = [];
-  const i = data.inventory;
-  const clothing = (i.shirts||0) + (i.pants||0);
-
-  if (i.isPrivate) reasons.push('Inventory is private');
-
-  if (data.accountAgeDays < 7) { score += 35; reasons.push('Account <1 week old (+35)'); }
-  else if (data.accountAgeDays < 30) { score += 25; reasons.push('Account <1 month (+25)'); }
-  else if (data.accountAgeDays < 90) { score += 15; reasons.push('Account <3 months (+15)'); }
-
-  if (data.badgeCount < 50) { score += 30; reasons.push(`Very few badges (${data.badgeCount}) (+30)`); }
-  else if (data.badgeCount < 100) { score += 15; reasons.push(`Low badges (+15)`); }
-
-  if (!i.isPrivate && clothing === 0 && data.accountAgeDays > 30) { score += 15; reasons.push('No clothing (+15)'); }
-  if (data.friends === 0) { score += 15; reasons.push('No friends (+15)'); }
-
-  let category = score >= 100 ? 'AUTO-FAIL' : score >= 50 ? 'HIGH' : score >= 16 ? 'MEDIUM-HIGH' : score >= 8 ? 'MEDIUM' : 'LOW';
-  return {score, category, reasons};
-}
-
-function renderContent() {
-  if (!currentUserData) {
-    el.panelBody.innerHTML = '<div class="alert alert-warning">Search for a user to begin analysis</div>';
-    return;
-  }
-
-  const d = currentUserData;
-  const a = calculateScore(d);
-  const badgeCls = a.category === 'AUTO-FAIL' ? 'badge-auto-fail' :
-                   a.category === 'HIGH' ? 'badge-high' :
-                   a.category === 'MEDIUM-HIGH' ? 'badge-medium-high' :
-                   a.category === 'MEDIUM' ? 'badge-medium' : 'badge-low';
-
-  if (activeTab === 'overview') {
-    el.panelTitle.textContent = 'Alt Risk Assessment';
-    el.panelBody.innerHTML = `
-      <div class="alert ${a.category === 'AUTO-FAIL' || a.category === 'HIGH' ? 'alert-error' : a.category === 'LOW' ? 'alert-success' : 'alert-warning'}">
-        <strong>Alt Likelihood: <span class="badge ${badgeCls}">${a.category}</span></strong>
-        <div style="margin-top:10px;font-size:18px">Score: ${a.score}/100</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-header"><div class="metric-title">Risk Score</div><div class="metric-value">${a.score}</div></div>
-        <div class="progress-bar"><div class="progress-fill" style="width:${a.score}%"></div></div>
-      </div>
-      <div class="section-title">Reasons</div>
-      <ul class="reasons-list">${a.reasons.map(r => `<li>${r}</li>`).join('')}</ul>
-      <div class="section-title">Quick Stats</div>
-      <div class="info-grid">
-        <div class="info-item"><span class="info-label">Account Age</span><span class="info-value">${d.accountAgeDays} days</span></div>
-        <div class="info-item"><span class="info-label">Badges</span><span class="info-value">${d.badgeCount}</span></div>
-        <div class="info-item"><span class="info-label">Friends</span><span class="info-value">${d.friends}</span></div>
-        <div class="info-item"><span class="info-label">Groups</span><span class="info-value">${d.groups.length}</span></div>
-        <div class="info-item"><span class="info-label">Profile</span><span class="info-value"><a href="https://www.roblox.com/users/${currentUserId}/profile" target="_blank" style="color:#60a5fa">View on Roblox</a></span></div>
-      </div>
-    `;
-  } else {
-    el.panelBody.innerHTML = `<div class="alert alert-warning">The "${activeTab}" tab is coming soon!</div>`;
-  }
-}
-</script>
-</body>
-</html>
+  followersCount: document.getElementById('followersCount
