@@ -19,11 +19,13 @@
     .toprow{display:flex;flex-direction:column;gap:16px;margin-bottom:32px}
     @media(min-width:768px){.toprow{flex-direction:row;justify-content:space-between;align-items:center}}
     .search-box{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-    .input{padding:12px 16px;border-radius:12px;border:2px solid #334155;background:#1e293b;color:#f1f5f9;font-size:15px;transition:all .2s;flex:1;min-width:200px}
+    .key-group{display:flex;gap:8px;align-items:center;max-width:500px;flex:1}
+    .input{padding:12px 16px;border-radius:12px;border:2px solid #334155;background:#1e293b;color:#f1f5f9;font-size:15px;transition:all .2s;flex:1}
     .input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
-    .btn{padding:12px 28px;border-radius:12px;border:0;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;cursor:pointer;font-weight:600;font-size:15px;transition:all .2s;box-shadow:0 4px 12px rgba(59,130,246,.3)}
+    .btn{padding:12px 20px;border-radius:12px;border:0;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;cursor:pointer;font-weight:600;font-size:15px;transition:all .2s;box-shadow:0 4px 12px rgba(59,130,246,.3);white-space:nowrap}
     .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(59,130,246,.4)}
     .btn:disabled{background:#334155;cursor:not-allowed;opacity:0.6;transform:none}
+    .btn-small{padding:12px 16px;font-size:14px}
     .status{color:#94a3b8;font-size:14px;padding:8px 16px;background:#1e293b;border-radius:8px}
     .grid{display:grid;grid-template-columns:1fr;gap:24px}
     @media(min-width:1024px){.grid{grid-template-columns:380px 1fr}}
@@ -63,8 +65,9 @@
     @media(max-width:768px){
       .sidebar{display:none}
       .search-box{flex-direction:column;align-items:stretch}
+      .key-group{flex-direction:column}
+      .btn-small{width:100%}
       .stats-row{grid-template-columns:1fr}
-      .input{min-width:100%}
     }
   </style>
 </head>
@@ -86,17 +89,14 @@
     <main class="main">
       <div class="toprow">
         <div class="search-box">
-          <div style="flex:1;max-width:400px">
+          <div class="key-group">
             <input id="apiKeyInput" type="password" class="input" placeholder="Roblox Cloud API Key (rbx_cloud_...)" autocomplete="off" />
-            <div class="api-note">
-              Required for inventory & advanced analysis.<br>
-              Saved securely in your browser. Never sent anywhere.
-            </div>
+            <button id="saveKeyBtn" class="btn btn-small">Save API Key</button>
           </div>
           <input id="usernameInput" class="input" placeholder="Enter Roblox username..." />
           <button id="searchBtn" class="btn" disabled>Analyze Account</button>
         </div>
-        <div class="status" id="statusText">Enter your API key to enable analysis</div>
+        <div class="status" id="statusText">Enter and save your API key to begin</div>
       </div>
 
       <div class="grid">
@@ -126,10 +126,10 @@
           <div class="section-title" id="panelTitle">Alt Detection Analysis</div>
           <div id="panelBody">
             <div class="alert alert-warning">
-              <strong>Enter Your Roblox Cloud API Key</strong><br><br>
-              This tool needs access to the Roblox Cloud API to read inventory and perform accurate detection.<br><br>
-              Get joe: <a href="https://create.roblox.com/credentials" target="_blank" style="color:#60a5fa">create.roblox.com/credentials</a><br>
-              Create an API key with <strong>Inventory Read</strong> permission.
+              <strong>Enter & Save Your Roblox Cloud API Key</strong><br><br>
+              Click <strong>Save API Key</strong> after entering your key to enable analysis.<br><br>
+              Get your key from: <a href="https://create.roblox.com/credentials" target="_blank" style="color:#60a5fa">create.roblox.com/credentials</a><br>
+              Requires <strong>Inventory Read</strong> permission.
             </div>
           </div>
         </div>
@@ -156,6 +156,7 @@ let avatarLarge = null, avatarHead = null;
 
 const el = {
   apiKeyInput: document.getElementById('apiKeyInput'),
+  saveKeyBtn: document.getElementById('saveKeyBtn'),
   usernameInput: document.getElementById('usernameInput'),
   searchBtn: document.getElementById('searchBtn'),
   statusText: document.getElementById('statusText'),
@@ -174,43 +175,45 @@ const el = {
 
 const STORAGE_KEY = 'robloxAltDetectorKey';
 
-// === FIXED API KEY DETECTION ===
-function loadAndUpdateKey() {
-  const savedKey = localStorage.getItem(STORAGE_KEY);
-  if (savedKey) {
-    el.apiKeyInput.value = savedKey;
+// Load saved key on start
+function loadSavedKey() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    el.apiKeyInput.value = saved;
+    updateStatus('API key loaded from browser storage');
+    el.searchBtn.disabled = false;
+  } else {
+    updateStatus('Enter your API key and click "Save API Key"');
   }
-  updateUIState(); // This is the key fix — now runs on page load
 }
 
-el.apiKeyInput.addEventListener('input', () => {
+// Save key when "Save API Key" button is clicked
+el.saveKeyBtn.addEventListener('click', () => {
   const key = el.apiKeyInput.value.trim();
-  if (key) {
-    localStorage.setItem(STORAGE_KEY, key);
-  } else {
-    localStorage.removeItem(STORAGE_KEY);
+  if (!key) {
+    alert('Please enter your API key first');
+    return;
   }
-  updateUIState();
+  localStorage.setItem(STORAGE_KEY, key);
+  updateStatus('API key saved successfully!');
+  el.searchBtn.disabled = false;
 });
 
-function updateUIState() {
-  const key = el.apiKeyInput.value.trim();
-  if (key && key.startsWith('rbx_cloud_')) {
-    el.statusText.textContent = 'API key ready — Enter username and analyze';
-    el.searchBtn.disabled = false;
-  } else if (key) {
-    el.statusText.textContent = 'Key detected — should start with "rbx_cloud_"';
-    el.searchBtn.disabled = false;
-  } else {
-    el.statusText.textContent = 'Enter your Roblox Cloud API key to begin';
-    el.searchBtn.disabled = true;
+// Optional: also save on Enter in key field
+el.apiKeyInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    el.saveKeyBtn.click();
   }
+});
+
+function updateStatus(message) {
+  el.statusText.textContent = message;
 }
 
-// Run on page load
-loadAndUpdateKey();
+// Initial load
+loadSavedKey();
 
-// === REST OF THE CODE (unchanged, fully working) ===
+// === NAVIGATION & REST OF CODE (unchanged) ===
 document.querySelectorAll('.nav button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
@@ -232,7 +235,7 @@ async function analyze() {
   const apiKey = el.apiKeyInput.value.trim();
 
   if (!username) return alert('Please enter a Roblox username');
-  if (!apiKey) return alert('Please enter your Roblox Cloud API key');
+  if (!apiKey) return alert('Please save your API key first');
 
   el.searchBtn.disabled = true;
   el.searchBtn.textContent = 'Analyzing...';
@@ -332,7 +335,9 @@ function hideLoading() {
   el.avatarImg.style.display = 'block';
 }
 
-// Supporting functions (same as before)
+// [All supporting functions remain the same — fetchAllBadges, processBadges, isValidBadge, fetchAllInventory, calculateScore, renderContent]
+// (Same as previous version)
+
 async function fetchAllBadges(userId) {
   const badges = [];
   let cursor = null;
