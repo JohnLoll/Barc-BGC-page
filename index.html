@@ -2,177 +2,160 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Roblox Alt Detector</title>
+<title>Roblox Cloud Alt Detector</title>
 
 <style>
-  body {
-    background: #0b0f14;
-    color: #e6e6e6;
-    font-family: Arial, sans-serif;
-  }
-
-  .container {
-    max-width: 600px;
-    margin: 50px auto;
-    padding: 20px;
-    background: #121821;
-    border-radius: 8px;
-  }
-
-  h1 {
-    text-align: center;
-  }
-
-  input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-    background: #1b2330;
-    border: none;
-    color: white;
-    font-size: 16px;
-  }
-
-  button {
-    width: 100%;
-    padding: 10px;
-    background: #3b82f6;
-    border: none;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-  }
-
-  .card {
-    margin-top: 20px;
-    padding: 15px;
-    background: #1b2330;
-    border-radius: 6px;
-  }
-
-  .high { color: #ef4444; }
-  .medium { color: #f59e0b; }
-  .low { color: #10b981; }
+body {
+  background:#0b0f14;
+  color:#e6e6e6;
+  font-family:Arial,sans-serif;
+}
+.container {
+  max-width:800px;
+  margin:40px auto;
+  padding:20px;
+  background:#121821;
+  border-radius:8px;
+}
+input, textarea, button {
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  background:#1b2330;
+  border:none;
+  color:white;
+}
+button {
+  background:#3b82f6;
+  cursor:pointer;
+}
+.card {
+  margin-top:20px;
+  padding:15px;
+  background:#1b2330;
+  border-radius:6px;
+}
+.high { color:#ef4444 }
+.medium { color:#f59e0b }
+.low { color:#10b981 }
+small { opacity:.7 }
 </style>
 </head>
 
 <body>
-
 <div class="container">
-  <h1>Roblox Alt Detector</h1>
+  <h1>Roblox Cloud Alt Detection</h1>
 
-  <input id="username" placeholder="Enter Roblox username">
-  <button onclick="runAltCheck()">Run Check</button>
+  <label>Roblox Cloud API Key</label>
+  <input id="apikey" placeholder="rbx_cloud_..." />
+
+  <label>Roblox Usernames (comma separated)</label>
+  <textarea id="usernames" rows="3" placeholder="user1, user2"></textarea>
+
+  <button onclick="runCheck()">Run Check</button>
 
   <div id="output"></div>
 </div>
 
 <script>
-const PROXY = "https://corsproxy.io/?";
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// ---------- API HELPERS ----------
+async function cloudFetch(url, apiKey) {
+  const res = await fetch(url, {
+    headers: {
+      "x-api-key": apiKey,
+      "Content-Type": "application/json"
+    }
+  });
+  if (!res.ok) throw new Error(`Cloud API error ${res.status}`);
+  return res.json();
+}
 
 async function getUserId(username) {
   const res = await fetch("https://users.roblox.com/v1/usernames/users", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      usernames: [username],
-      excludeBannedUsers: false
-    })
+    body: JSON.stringify({ usernames: [username] })
   });
-
   const data = await res.json();
-  return data.data[0]?.id;
+  return data.data?.[0]?.id;
 }
 
-async function getUserInfo(userId) {
-  const res = await fetch(`https://users.roblox.com/v1/users/${userId}`);
-  return await res.json();
-}
-
-async function getFriendsCount(userId) {
-  const res = await fetch(
-    `https://friends.roblox.com/v1/users/${userId}/friends/count`
+async function getUserCloudProfile(userId, apiKey) {
+  return cloudFetch(
+    `https://apis.roblox.com/cloud/v2/users/${userId}`,
+    apiKey
   );
-  return (await res.json()).count;
 }
 
-async function getInventoryCount(userId, assetType) {
+async function getInventoryCloud(userId, apiKey, assetType) {
   const url =
-    PROXY +
-    `https://www.roblox.com/users/inventory/list-json?userId=${userId}&assetTypeId=${assetType}&pageNumber=1`;
-
-  const res = await fetch(url);
-  const data = await res.json();
-  return data?.Data?.length || 0;
-}
-
-// ---------- ALT SCORING ----------
-
-function calculateAltScore(data) {
-  let score = 0;
-
-  if (data.accountAge < 30) score += 40;
-  else if (data.accountAge < 90) score += 20;
-
-  if (data.clothing < 5) score += 20;
-  if (data.badges < 3) score += 15;
-  if (data.friends < 10) score += 10;
-
-  if (score >= 60) return { label: "High Alt", class: "high" };
-  if (score >= 30) return { label: "Medium Alt", class: "medium" };
-  return { label: "Low / Not Alt", class: "low" };
-}
-
-// ---------- MAIN ----------
-
-async function runAltCheck() {
-  const output = document.getElementById("output");
-  output.innerHTML = "Checking...";
-
+    `https://apis.roblox.com/cloud/v2/inventories/users/${userId}/items?assetType=${assetType}&maxPageSize=100`;
   try {
-    const username = document.getElementById("username").value.trim();
-    if (!username) throw "Enter a username";
+    const data = await cloudFetch(url, apiKey);
+    return data.items?.length ?? 0;
+  } catch {
+    return 0;
+  }
+}
 
-    const userId = await getUserId(username);
-    if (!userId) throw "User not found";
+function scoreAlt({ age, clothing }) {
+  let score = 0;
+  if (age < 30) score += 40;
+  if (clothing < 5) score += 30;
 
-    const info = await getUserInfo(userId);
-    const friends = await getFriendsCount(userId);
+  if (score >= 50) return { label: "HIGH ALT", class: "high" };
+  if (score >= 25) return { label: "MEDIUM ALT", class: "medium" };
+  return { label: "LOW / NOT ALT", class: "low" };
+}
 
-    // Asset Types
-    const shirts = await getInventoryCount(userId, 11);
-    const pants = await getInventoryCount(userId, 12);
-    const badges = await getInventoryCount(userId, 21);
+async function runCheck() {
+  const out = document.getElementById("output");
+  out.innerHTML = "Running...";
 
-    const accountAge = Math.floor(
-      (Date.now() - new Date(info.created)) / 86400000
-    );
+  const apiKey = document.getElementById("apikey").value.trim();
+  const names = document
+    .getElementById("usernames")
+    .value.split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
 
-    const result = calculateAltScore({
-      accountAge,
-      clothing: shirts + pants,
-      badges,
-      friends
-    });
+  out.innerHTML = "";
 
-    output.innerHTML = `
-      <div class="card">
-        <h3>${info.name}</h3>
-        <p>Account Age: ${accountAge} days</p>
-        <p>Clothing: ${shirts + pants}</p>
-        <p>Badges: ${badges}</p>
-        <p>Friends: ${friends}</p>
-        <h2 class="${result.class}">${result.label}</h2>
-        <p><a href="https://www.roblox.com/users/${userId}/profile" target="_blank">View Profile</a></p>
-      </div>
-    `;
-  } catch (err) {
-    output.innerHTML = `<p style="color:#ef4444">${err}</p>`;
+  for (const name of names) {
+    try {
+      const userId = await getUserId(name);
+      if (!userId) throw "User not found";
+
+      const profile = await getUserCloudProfile(userId, apiKey);
+      const created = new Date(profile.created);
+      const age = Math.floor((Date.now() - created) / 86400000);
+
+      const shirts = await getInventoryCloud(userId, apiKey, "Shirt");
+      const pants = await getInventoryCloud(userId, apiKey, "Pants");
+
+      const result = scoreAlt({
+        age,
+        clothing: shirts + pants
+      });
+
+      out.innerHTML += `
+        <div class="card">
+          <h3>${name}</h3>
+          <p>Account Age: ${age} days</p>
+          <p>Clothing: ${shirts + pants}</p>
+          <h2 class="${result.class}">${result.label}</h2>
+          <a href="https://www.roblox.com/users/${userId}/profile" target="_blank">
+            View Profile
+          </a>
+        </div>
+      `;
+    } catch (e) {
+      out.innerHTML += `<div class="card">Failed: ${name}</div>`;
+    }
+    await sleep(600);
   }
 }
 </script>
-
 </body>
 </html>
