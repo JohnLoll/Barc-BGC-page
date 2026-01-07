@@ -1,549 +1,178 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Advanced Roblox Alt Detector</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#0a0e27;color:#e8eaf6;line-height:1.6}
-    .app{display:flex;min-height:100vh}
-    .sidebar{width:300px;background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);padding:24px;display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,0.4);overflow:hidden}
-    .brand{font-size:20px;font-weight:800;margin-bottom:20px;color:#60a5fa;text-align:center}
-    .api-section{margin-bottom:20px;padding:16px;background:#0f172a;border-radius:12px;border:2px solid #334155}
-    .api-label{color:#94a3b8;font-size:13px;margin-bottom:8px;font-weight:600}
-    .api-input{width:100%;padding:10px;border-radius:8px;border:2px solid #334155;background:#1e293b;color:#f1f5f9;font-size:13px;font-family:monospace}
-    .api-input:focus{outline:none;border-color:#3b82f6}
-    .api-status{margin-top:8px;font-size:12px;color:#22c55e}
-    .logs-section{flex:1;display:flex;flex-direction:column;margin-top:20px;min-height:0}
-    .logs-title{color:#94a3b8;font-size:13px;margin-bottom:8px;font-weight:600}
-    .logs-container{flex:1;background:#0f172a;border-radius:8px;padding:12px;overflow-y:auto;font-size:12px;font-family:monospace;color:#cbd5e1;border:2px solid #334155;min-height:200px}
-    .log-entry{padding:6px 0;border-bottom:1px solid #1e293b}
-    .log-entry:last-child{border-bottom:none}
-    .log-info{color:#60a5fa}
-    .log-success{color:#22c55e}
-    .log-error{color:#ef4444}
-    .log-warning{color:#f59e0b}
-    .nav{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
-    .nav button{background:transparent;border:0;color:#cbd5e1;padding:14px 16px;border-radius:10px;text-align:left;cursor:pointer;font-weight:500;transition:all .2s;font-size:15px}
-    .nav button:hover{background:#1e293b;color:#f1f5f9}
-    .nav button.active{background:#3b82f6;color:white;font-weight:600;box-shadow:0 4px 12px rgba(59,130,246,.4)}
-    .main{flex:1;padding:32px;overflow-y:auto}
-    .toprow{display:flex;flex-direction:column;gap:16px;margin-bottom:32px}
-    @media(min-width:768px){.toprow{flex-direction:row;justify-content:space-between;align-items:center}}
-    .search-box{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-    .input{padding:12px 16px;border-radius:12px;border:2px solid #334155;background:#1e293b;color:#f1f5f9;font-size:15px;transition:all .2s;flex:1;min-width:200px}
-    .input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
-    .btn{padding:12px 28px;border-radius:12px;border:0;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;cursor:pointer;font-weight:600;font-size:15px;transition:all .2s;box-shadow:0 4px 12px rgba(59,130,246,.3)}
-    .btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 20px rgba(59,130,246,.4)}
-    .btn:disabled{opacity:0.6;cursor:not-allowed}
-    .status{color:#94a3b8;font-size:14px;padding:8px 16px;background:#1e293b;border-radius:8px}
-    .grid{display:grid;grid-template-columns:1fr;gap:24px}
-    @media(min-width:1024px){.grid{grid-template-columns:380px 1fr}}
-    .card{background:#1e293b;padding:24px;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.3);border:1px solid #334155}
-    .avatar-section{display:flex;flex-direction:column;align-items:center;gap:20px}
-    .avatar{width:240px;height:240px;border-radius:16px;object-fit:cover;background:#0f172a;border:4px solid #334155;box-shadow:0 12px 32px rgba(0,0,0,.5)}
-    .user-info{text-align:center;width:100%}
-    .display-name{font-size:26px;font-weight:700;margin-bottom:6px}
-    .username{color:#94a3b8;font-size:16px;margin-bottom:16px}
-    .bio{color:#cbd5e1;font-size:15px;line-height:1.6;padding:16px;background:#0f172a;border-radius:12px;margin-top:12px;max-height:140px;overflow-y:auto}
-    .stats-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;margin-top:20px}
-    .stat-box{text-align:center;padding:16px;background:#0f172a;border-radius:12px}
-    .stat-label{color:#94a3b8;font-size:14px;margin-bottom:6px}
-    .stat-value{font-size:22px;font-weight:700;color:#60a5fa}
-    .tabs{display:flex;gap:12px;margin-top:20px;width:100%}
-    .tab{flex:1;padding:12px;border-radius:12px;background:#0f172a;cursor:pointer;font-weight:600;text-align:center;transition:all .2s;border:2px solid transparent}
-    .tab:hover{border-color:#3b82f6}
-    .tab.active{background:#3b82f6;color:white;box-shadow:0 4px 12px rgba(59,130,246,.4)}
-    .section-title{font-size:22px;font-weight:700;margin-bottom:20px;color:#f1f5f9}
-    .info-grid{display:grid;gap:12px}
-    .info-item{display:flex;justify-content:space-between;padding:14px;background:#0f172a;border-radius:12px;border-left:4px solid #3b82f6}
-    .info-label{color:#94a3b8;font-weight:500;font-size:15px}
-    .info-value{color:#f1f5f9;font-weight:600;font-size:15px}
-    .badge{display:inline-block;padding:8px 14px;border-radius:8px;font-size:14px;font-weight:700;margin-right:8px;margin-bottom:8px}
-    .badge-auto-fail{background:#7c3aed;color:white}
-    .badge-high{background:#ef4444;color:white}
-    .badge-medium-high{background:#f97316;color:white}
-    .badge-medium{background:#eab308;color:#0a0e27}
-    .badge-low{background:#22c55e;color:white}
-    .skeleton{background:linear-gradient(90deg,#1e293b 25%,#334155 50%,#1e293b 75%);background-size:200% 100%;animation:shimmer 1.8s infinite;border-radius:12px}
-    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-    .alert{padding:20px;border-radius:14px;margin-bottom:20px;border:2px solid;font-size:15px;font-weight:500}
-    .alert-warning{background:#422006;border-color:#f59e0b;color:#fbbf24}
-    .alert-error{background:#450a0a;border-color:#dc2626;color:#f87171}
-    .alert-success{background:#052e16;border-color:#16a34a;color:#4ade80}
-    .reasons-list{list-style:none;padding:0}
-    .reasons-list li{padding:12px;background:#0f172a;border-radius:8px;margin-bottom:8px;border-left:3px solid #60a5fa}
-    @media(max-width:768px){
-      .sidebar{display:none}
-      .search-box{flex-direction:column;align-items:stretch}
-      .stats-row{grid-template-columns:1fr}
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Roblox Alt Detector</title>
+
+<style>
+  body {
+    background: #0b0f14;
+    color: #e6e6e6;
+    font-family: Arial, sans-serif;
+  }
+
+  .container {
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 20px;
+    background: #121821;
+    border-radius: 8px;
+  }
+
+  h1 {
+    text-align: center;
+  }
+
+  input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    background: #1b2330;
+    border: none;
+    color: white;
+    font-size: 16px;
+  }
+
+  button {
+    width: 100%;
+    padding: 10px;
+    background: #3b82f6;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  .card {
+    margin-top: 20px;
+    padding: 15px;
+    background: #1b2330;
+    border-radius: 6px;
+  }
+
+  .high { color: #ef4444; }
+  .medium { color: #f59e0b; }
+  .low { color: #10b981; }
+</style>
 </head>
+
 <body>
-  <div class="app">
-    <aside class="sidebar">
-      <div class="brand">Advanced Alt Detector</div>
-      
-      <div class="api-section">
-        <div class="api-label">🔑 Roblox Cloud API Key</div>
-        <input type="password" id="apiKeyInput" class="api-input" placeholder="rbx_cloud_..." />
-        <div class="api-status" id="apiStatus"></div>
-      </div>
-      
-      <div class="nav">
-        <button class="active" data-tab="overview">Overview</button>
-        <button data-tab="badges">Badges</button>
-        <button data-tab="inventory">Inventory</button>
-        <button data-tab="social">Social</button>
-      </div>
-      
-      <div class="logs-section">
-        <div class="logs-title">📋 Activity Logs</div>
-        <div class="logs-container" id="logsContainer"></div>
-      </div>
-    </aside>
 
-    <main class="main">
-      <div class="toprow">
-        <div class="search-box">
-          <input id="usernameInput" class="input" placeholder="Enter Roblox username..." />
-          <button id="searchBtn" class="btn">Analyze Account</button>
-        </div>
-        <div class="status" id="statusText">Ready — Enter a username and click Analyze</div>
-      </div>
+<div class="container">
+  <h1>Roblox Alt Detector</h1>
 
-      <div class="grid">
-        <div class="card">
-          <div class="avatar-section">
-            <div id="avatarSkeleton" class="skeleton" style="width:240px;height:240px;display:none"></div>
-            <img id="avatarImg" class="avatar" style="display:none" alt="User avatar" />
-            <div class="user-info">
-              <div id="displayName" class="display-name">—</div>
-              <div id="usernameSmall" class="username">@—</div>
-              <div id="bio" class="bio" style="display:none">No bio</div>
-            </div>
-            <div class="stats-row">
-              <div class="stat-box"><div class="stat-label">Account Age</div><div class="stat-value" id="accountAge">—</div></div>
-              <div class="stat-box"><div class="stat-label">Friends</div><div class="stat-value" id="friendsCount">—</div></div>
-              <div class="stat-box"><div class="stat-label">Followers</div><div class="stat-value" id="followersCount">—</div></div>
-              <div class="stat-box"><div class="stat-label">Following</div><div class="stat-value" id="followingCount">—</div></div>
-            </div>
-            <div class="tabs">
-              <div id="renderFull" class="tab active">Full Body</div>
-              <div id="renderHead" class="tab">Headshot</div>
-            </div>
-          </div>
-        </div>
+  <input id="username" placeholder="Enter Roblox username">
+  <button onclick="runAltCheck()">Run Check</button>
 
-        <div class="card">
-          <div class="section-title" id="panelTitle">Alt Detection Analysis</div>
-          <div id="panelBody">
-            <div class="alert alert-warning">Enter a Roblox username above and click Analyze to begin.</div>
-          </div>
-        </div>
-      </div>
-    </main>
-  </div>
+  <div id="output"></div>
+</div>
 
 <script>
-let MY_API_KEY = '';
+const PROXY = "https://corsproxy.io/?";
 
-const CONSTANTS = {
-  GAR_BADGE_ID: 2124527902,
-  BADGES_PER_PAGE: 30,
-  ROBLOX_CREATOR_ID: 1,
-  MAX_ROBLOX_ACCESSORIES: 5
-};
+// ---------- API HELPERS ----------
 
-const BADGE_BLACKLIST = {
-  GROUPS: [12812691,33902982,5088172,15750958230,11858305,32488102,13617167,4705120,5218018],
-  KEYWORDS: ['obby','easy','free','quick','simple','fast','auto','afk','idle','click','simulator','tycoon','farm','grind','noob','pro','legend','master','expert','stage','camp','level','collect','find','touch','press','walk','run','jump','badge','drop','welcome','visitor']
-};
+async function getUserId(username) {
+  const res = await fetch("https://users.roblox.com/v1/usernames/users", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      usernames: [username],
+      excludeBannedUsers: false
+    })
+  });
 
-let currentUserId = null;
-let currentUserData = null;
-let activeTab = 'overview';
-let avatarLarge = null, avatarHead = null;
-
-const el = {
-  apiKeyInput: document.getElementById('apiKeyInput'),
-  apiStatus: document.getElementById('apiStatus'),
-  logsContainer: document.getElementById('logsContainer'),
-  usernameInput: document.getElementById('usernameInput'),
-  searchBtn: document.getElementById('searchBtn'),
-  statusText: document.getElementById('statusText'),
-  avatarImg: document.getElementById('avatarImg'),
-  avatarSkeleton: document.getElementById('avatarSkeleton'),
-  displayName: document.getElementById('displayName'),
-  usernameSmall: document.getElementById('usernameSmall'),
-  bio: document.getElementById('bio'),
-  accountAge: document.getElementById('accountAge'),
-  friendsCount: document.getElementById('friendsCount'),
-  followersCount: document.getElementById('followersCount'),
-  followingCount: document.getElementById('followingCount'),
-  panelTitle: document.getElementById('panelTitle'),
-  panelBody: document.getElementById('panelBody')
-};
-
-function log(message, type = 'info') {
-  const timestamp = new Date().toLocaleTimeString();
-  const entry = document.createElement('div');
-  entry.className = `log-entry log-${type}`;
-  entry.textContent = `[${timestamp}] ${message}`;
-  el.logsContainer.appendChild(entry);
-  el.logsContainer.scrollTop = el.logsContainer.scrollHeight;
-  console.log(`[${type.toUpperCase()}] ${message}`);
+  const data = await res.json();
+  return data.data[0]?.id;
 }
 
-el.apiKeyInput.addEventListener('input', (e) => {
-  MY_API_KEY = e.target.value.trim();
-  if (MY_API_KEY) {
-    el.apiStatus.textContent = '✓ API Key Set';
-    el.apiStatus.style.color = '#22c55e';
-    log('API Key configured', 'success');
-  } else {
-    el.apiStatus.textContent = '';
-  }
-});
+async function getUserInfo(userId) {
+  const res = await fetch(`https://users.roblox.com/v1/users/${userId}`);
+  return await res.json();
+}
 
-document.querySelectorAll('.nav button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    log(`Switched to ${btn.dataset.tab} tab`, 'info');
-    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    activeTab = btn.dataset.tab;
-    renderContent();
-  });
-});
+async function getFriendsCount(userId) {
+  const res = await fetch(
+    `https://friends.roblox.com/v1/users/${userId}/friends/count`
+  );
+  return (await res.json()).count;
+}
 
-document.getElementById('renderFull').addEventListener('click', () => {
-  if (avatarLarge) {
-    el.avatarImg.src = avatarLarge;
-    log('Switched to full body avatar', 'info');
-  }
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('renderFull').classList.add('active');
-});
+async function getInventoryCount(userId, assetType) {
+  const url =
+    PROXY +
+    `https://www.roblox.com/users/inventory/list-json?userId=${userId}&assetTypeId=${assetType}&pageNumber=1`;
 
-document.getElementById('renderHead').addEventListener('click', () => {
-  if (avatarHead) {
-    el.avatarImg.src = avatarHead;
-    log('Switched to headshot avatar', 'info');
-  }
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('renderHead').classList.add('active');
-});
+  const res = await fetch(url);
+  const data = await res.json();
+  return data?.Data?.length || 0;
+}
 
-async function analyze() {
-  const username = el.usernameInput.value.trim();
-  
-  if (!username) {
-    log('No username entered', 'error');
-    alert('Please enter a Roblox username');
-    return;
-  }
+// ---------- ALT SCORING ----------
 
-  if (!MY_API_KEY) {
-    log('No API key configured', 'error');
-    alert('Please enter your Roblox Cloud API Key in the sidebar');
-    return;
-  }
+function calculateAltScore(data) {
+  let score = 0;
 
-  log(`Starting analysis for: ${username}`, 'info');
-  el.searchBtn.disabled = true;
-  el.searchBtn.textContent = 'Analyzing...';
-  showLoading();
-  el.statusText.textContent = 'Finding user...';
+  if (data.accountAge < 30) score += 40;
+  else if (data.accountAge < 90) score += 20;
+
+  if (data.clothing < 5) score += 20;
+  if (data.badges < 3) score += 15;
+  if (data.friends < 10) score += 10;
+
+  if (score >= 60) return { label: "High Alt", class: "high" };
+  if (score >= 30) return { label: "Medium Alt", class: "medium" };
+  return { label: "Low / Not Alt", class: "low" };
+}
+
+// ---------- MAIN ----------
+
+async function runAltCheck() {
+  const output = document.getElementById("output");
+  output.innerHTML = "Checking...";
 
   try {
-    log('Calling username API...', 'info');
-    const idRes = await fetch('https://users.roblox.com/v1/usernames/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usernames: [username], excludeBannedUsers: false })
+    const username = document.getElementById("username").value.trim();
+    if (!username) throw "Enter a username";
+
+    const userId = await getUserId(username);
+    if (!userId) throw "User not found";
+
+    const info = await getUserInfo(userId);
+    const friends = await getFriendsCount(userId);
+
+    // Asset Types
+    const shirts = await getInventoryCount(userId, 11);
+    const pants = await getInventoryCount(userId, 12);
+    const badges = await getInventoryCount(userId, 21);
+
+    const accountAge = Math.floor(
+      (Date.now() - new Date(info.created)) / 86400000
+    );
+
+    const result = calculateAltScore({
+      accountAge,
+      clothing: shirts + pants,
+      badges,
+      friends
     });
-    
-    log(`Username API response: ${idRes.status}`, idRes.ok ? 'success' : 'error');
-    
-    if (!idRes.ok) {
-      throw new Error(`Failed to lookup username: HTTP ${idRes.status}`);
-    }
-    
-    const idData = await idRes.json();
-    log(`Username API data: ${JSON.stringify(idData)}`, 'info');
-    
-    if (!idData.data?.length) {
-      log(`User not found: ${username}`, 'error');
-      throw new Error('User not found');
-    }
-    
-    currentUserId = idData.data[0].id;
-    log(`Found user ID: ${currentUserId}`, 'success');
 
-    el.statusText.textContent = 'Fetching user data...';
-    log('Fetching user profile data...', 'info');
-
-    const userInfoRes = await fetch(`https://users.roblox.com/v1/users/${currentUserId}`);
-    log(`User info API: ${userInfoRes.status}`, userInfoRes.ok ? 'success' : 'error');
-    const userInfo = await userInfoRes.json();
-    log(`User info received: ${userInfo.name}`, 'success');
-
-    log('Fetching friends count...', 'info');
-    const friendsRes = await fetch(`https://friends.roblox.com/v1/users/${currentUserId}/friends/count`);
-    const friends = await friendsRes.json();
-    log(`Friends: ${friends.count}`, 'success');
-
-    log('Fetching followers count...', 'info');
-    const followersRes = await fetch(`https://friends.roblox.com/v1/users/${currentUserId}/followers/count`);
-    const followers = await followersRes.json();
-    log(`Followers: ${followers.count}`, 'success');
-
-    log('Fetching following count...', 'info');
-    const followingRes = await fetch(`https://friends.roblox.com/v1/users/${currentUserId}/followings/count`);
-    const following = await followingRes.json();
-    log(`Following: ${following.count}`, 'success');
-
-    log('Fetching groups...', 'info');
-    const groupsRes = await fetch(`https://groups.roblox.com/v2/users/${currentUserId}/groups/roles`);
-    const groups = await groupsRes.json();
-    log(`Groups: ${groups.data?.length || 0}`, 'success');
-
-    log('Fetching avatars...', 'info');
-    const avatarFullRes = await fetch(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${currentUserId}&size=420x420&format=Png`);
-    const avatarFull = await avatarFullRes.json();
-    
-    const avatarHeadResData = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${currentUserId}&size=420x420&format=Png`);
-    const avatarHeadRes = await avatarHeadResData.json();
-    log('Avatars received', 'success');
-
-    log('Fetching all badges...', 'info');
-    const rawBadges = await fetchAllBadges(currentUserId);
-    log(`Fetched ${rawBadges.length} total badges`, 'success');
-    
-    log('Processing badges...', 'info');
-    const garResult = await processBadges(rawBadges);
-    log(`Valid badges: ${garResult.totalBadges}, Filtered: ${garResult.filteredBadges} (${garResult.filteredPercentage}%)`, 'success');
-
-    log('Fetching inventory...', 'info');
-    const inventory = await fetchAllInventory(currentUserId, MY_API_KEY);
-    
-    if (inventory.isPrivate) {
-      log('Inventory is private', 'warning');
-    } else {
-      log(`Inventory: ${inventory.shirts} shirts, ${inventory.pants} pants, ${inventory.accessories} accessories, ${inventory.gamepasses} gamepasses`, 'success');
-    }
-
-    const ageDays = Math.floor((Date.now() - new Date(userInfo.created)) / 86400000);
-
-    currentUserData = {
-      userInfo,
-      accountAge: ageDays,
-      friends: friends.count || 0,
-      followers: followers.count || 0,
-      following: following.count || 0,
-      groups: groups.data?.length || 0,
-      avatarLarge: avatarFull.data?.[0]?.imageUrl,
-      avatarHead: avatarHeadRes.data?.[0]?.imageUrl,
-      inventory,
-      garBadge: garResult,
-      realBadges: garResult.totalBadges
-    };
-
-    avatarLarge = currentUserData.avatarLarge;
-    avatarHead = currentUserData.avatarHead;
-
-    el.displayName.textContent = userInfo.displayName || userInfo.name;
-    el.usernameSmall.textContent = '@' + userInfo.name;
-    el.bio.textContent = userInfo.description || 'No bio';
-    el.bio.style.display = userInfo.description ? 'block' : 'none';
-    el.accountAge.textContent = ageDays + 'd';
-    el.friendsCount.textContent = currentUserData.friends;
-    el.followersCount.textContent = currentUserData.followers;
-    el.followingCount.textContent = currentUserData.following;
-    if (avatarLarge) el.avatarImg.src = avatarLarge;
-
-    hideLoading();
-    el.statusText.textContent = 'Analysis complete!';
-    
-    const {score, category} = calculateScore(currentUserData);
-    log(`Analysis complete! Score: ${score}, Category: ${category}`, 'success');
-    
-    renderContent();
-
+    output.innerHTML = `
+      <div class="card">
+        <h3>${info.name}</h3>
+        <p>Account Age: ${accountAge} days</p>
+        <p>Clothing: ${shirts + pants}</p>
+        <p>Badges: ${badges}</p>
+        <p>Friends: ${friends}</p>
+        <h2 class="${result.class}">${result.label}</h2>
+        <p><a href="https://www.roblox.com/users/${userId}/profile" target="_blank">View Profile</a></p>
+      </div>
+    `;
   } catch (err) {
-    console.error('Full error:', err);
-    log(`Error: ${err.message}`, 'error');
-    log(`Error stack: ${err.stack}`, 'error');
-    hideLoading();
-    el.statusText.textContent = 'Error: ' + err.message;
-    el.panelBody.innerHTML = `<div class="alert alert-error"><strong>Error:</strong> ${err.message}<br><small>Check the logs for more details</small></div>`;
-  } finally {
-    el.searchBtn.disabled = false;
-    el.searchBtn.textContent = 'Analyze Account';
+    output.innerHTML = `<p style="color:#ef4444">${err}</p>`;
   }
 }
+</script>
 
-el.searchBtn.addEventListener('click', () => {
-  log('Analyze button clicked', 'info');
-  analyze();
-});
-
-el.usernameInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    log('Enter key pressed', 'info');
-    analyze();
-  }
-});
-
-function showLoading() {
-  el.avatarSkeleton.style.display = 'block';
-  el.avatarImg.style.display = 'none';
-  el.panelBody.innerHTML = '<div class="skeleton" style="height:600px;border-radius:16px"></div>';
-}
-
-function hideLoading() {
-  el.avatarSkeleton.style.display = 'none';
-  el.avatarImg.style.display = 'block';
-}
-
-async function fetchAllBadges(userId) {
-  const badges = [];
-  let cursor = null;
-  let pageCount = 0;
-  
-  do {
-    pageCount++;
-    const url = `https://badges.roblox.com/v1/users/${userId}/badges?limit=100&sortOrder=Desc${cursor ? `&cursor=${cursor}` : ''}`;
-    log(`Fetching badges page ${pageCount}...`, 'info');
-    const res = await fetch(url);
-    
-    if (!res.ok) {
-      log(`Badge fetch failed on page ${pageCount}: HTTP ${res.status}`, 'warning');
-      break;
-    }
-    
-    const json = await res.json();
-    badges.push(...(json.data || []));
-    cursor = json.nextPageCursor;
-    
-    if (pageCount % 5 === 0) {
-      log(`Fetched ${badges.length} badges so far...`, 'info');
-    }
-    
-    await new Promise(r => setTimeout(r, 100));
-  } while (cursor);
-  
-  return badges;
-}
-
-async function processBadges(allBadges) {
-  let validCount = 0;
-  let filteredCount = 0;
-  let garFound = false;
-  let garPosition = null;
-
-  const excludedCreators = new Set();
-  const creatorCounts = new Map();
-
-  log('Analyzing badge creators...', 'info');
-  
-  for (const b of allBadges) {
-    const cid = b.creator?.id;
-    if (cid) {
-      const c = (creatorCounts.get(cid) || 0) + 1;
-      creatorCounts.set(cid, c);
-      if (c >= 50) excludedCreators.add(cid);
-    }
-  }
-
-  log(`Found ${excludedCreators.size} creators with 50+ badges`, 'info');
-
-  for (const [i, badge] of allBadges.entries()) {
-    if (badge.id === CONSTANTS.GAR_BADGE_ID) {
-      garFound = true;
-      garPosition = i;
-      log('GAR badge found!', 'success');
-    }
-
-    const cid = badge.creator?.id;
-    if (cid && excludedCreators.has(cid)) { filteredCount++; continue; }
-
-    if (!isValidBadge(badge)) { filteredCount++; continue; }
-
-    if (cid) {
-      const list = (window._validByCreator ||= new Map()).get(cid) || [];
-      if (list.length < 15) {
-        list.push(badge);
-        window._validByCreator.set(cid, list);
-        validCount++;
-      } else filteredCount++;
-    } else filteredCount++;
-  }
-
-  const totalPages = Math.ceil(allBadges.length / CONSTANTS.BADGES_PER_PAGE);
-  const garPage = garFound ? Math.floor(garPosition / CONSTANTS.BADGES_PER_PAGE) + 1 : null;
-  const filteredPct = allBadges.length ? (filteredCount / allBadges.length * 100).toFixed(1) : 0;
-
-  return {
-    found: garFound,
-    pageNumber: garPage,
-    totalPages,
-    totalBadges: validCount,
-    filteredBadges: filteredCount,
-    filteredPercentage: parseFloat(filteredPct),
-    message: garFound ? `Page ${garPage} of ${totalPages}` : 'Not found'
-  };
-}
-
-function isValidBadge(badge) {
-  if (!badge || !badge.displayName || !badge.creator?.id) return false;
-  if (BADGE_BLACKLIST.GROUPS.includes(badge.creator.id)) return false;
-  const clean = badge.displayName.replace(/\s/g, '');
-  if (/^\d+$/.test(clean)) return false;
-  const lower = badge.displayName.toLowerCase();
-  return !BADGE_BLACKLIST.KEYWORDS.some(kw => lower.includes(kw));
-}
-
-async function fetchAllInventory(userId, apiKey) {
-  const inv = {shirts:0,pants:0,accessories:0,gamepasses:0,isPrivate:false};
-  const types = [
-    {k:'shirts',f:'CLASSIC_SHIRT',n:'shirts'},
-    {k:'pants',f:'CLASSIC_PANTS',n:'pants'},
-    {k:'accessories',f:'HAT',n:'accessories'},
-    {k:'gamepasses',f:'gamePasses=true',n:'gamepasses'}
-  ];
-
-  for (const t of types) {
-    log(`Fetching ${t.n}...`, 'info');
-    let count = 0;
-    let token = '';
-    let pageCount = 0;
-    
-    do {
-      pageCount++;
-      const filter = t.f === 'gamePasses=true' ? t.f : 'inventoryItemAssetTypes=' + t.f;
-      const url = `https://apis.roblox.com/cloud/v2/users/${userId}/inventory-items?maxPageSize=100${token ? '&pageToken=' + token : ''}&filter=${filter}`;
-      
-      log(`Fetching ${t.n} page ${pageCount}...`, 'info');
-      const res = await fetch(url, {headers:{'x-api-key':apiKey}});
-      
-      log(`${t.n} API response: ${res.status}`, res.ok ? 'success' : res.status === 403 ? 'warning' : 'error');
-      
-      if (res.status === 403) { 
-        inv.isPrivate = true;
-        log('Inventory is private (403)', 'warning');
-        return inv;
-      }
-      
-      if (!res.ok) {
-        log(`Failed to fetch ${t.n}: HTTP ${res.status}`, 'error');
-        break;
-      }
-      
-      const json = await res.json();
-      const items = json.inventoryItems || [];
-      log(`${t.n} page ${pageCount}: ${items.length} items`, 'info');
-      
-      if (t.k === 'gam
+</body>
+</html>
