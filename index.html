@@ -21,7 +21,8 @@
     .input{padding:12px 16px;border-radius:12px;border:2px solid #334155;background:#1e293b;color:#f1f5f9;font-size:15px;transition:all .2s;flex:1;min-width:200px}
     .input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
     .btn{padding:12px 28px;border-radius:12px;border:0;background:linear-gradient(135deg,#3b82f6,#2563eb);color:white;cursor:pointer;font-weight:600;font-size:15px;transition:all .2s;box-shadow:0 4px 12px rgba(59,130,246,.3)}
-    .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(59,130,246,.4)}
+    .btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 20px rgba(59,130,246,.4)}
+    .btn:disabled{opacity:0.6;cursor:not-allowed}
     .status{color:#94a3b8;font-size:14px;padding:8px 16px;background:#1e293b;border-radius:8px}
     .grid{display:grid;grid-template-columns:1fr;gap:24px}
     @media(min-width:1024px){.grid{grid-template-columns:380px 1fr}}
@@ -57,6 +58,8 @@
     .alert-warning{background:#422006;border-color:#f59e0b;color:#fbbf24}
     .alert-error{background:#450a0a;border-color:#dc2626;color:#f87171}
     .alert-success{background:#052e16;border-color:#16a34a;color:#4ade80}
+    .reasons-list{list-style:none;padding:0}
+    .reasons-list li{padding:12px;background:#0f172a;border-radius:8px;margin-bottom:8px;border-left:3px solid #60a5fa}
     @media(max-width:768px){
       .sidebar{display:none}
       .search-box{flex-direction:column;align-items:stretch}
@@ -75,7 +78,7 @@
         <button data-tab="social">Social</button>
       </div>
       <div style="margin-top:auto;font-size:13px;color:#64748b;text-align:center;padding-top:20px;">
-        v3.0 • Personal Use<br>API key hardcoded
+        v3.0 • GitHub Pages
       </div>
     </aside>
 
@@ -122,13 +125,7 @@
   </div>
 
 <script>
-// ==================== PUT YOUR API KEY HERE ====================
-const MY_API_KEY = 'poTgisiUbkaMmmCOUTd7y0gHVeVpEGhw7Dd2gTcX99PmaQWZZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNkluTnBaeTB5TURJeExUQTNMVEV6VkRFNE9qVXhPalE1V2lJc0luUjVjQ0k2SWtwWFZDSjkuZXlKaVlYTmxRWEJwUzJWNUlqb2ljRzlVWjJsemFWVmlhMkZOYlcxRFQxVlVaRGQ1TUdkSVZtVldjRVZIYUhjM1JHUXlaMVJqV0RrNVVHMWhVVmRhSWl3aWIzZHVaWEpKWkNJNklqSTVOamcwTURNMk5pSXNJbUYxWkNJNklsSnZZbXh2ZUVsdWRHVnlibUZzSWl3aWFYTnpJam9pUTJ4dmRXUkJkWFJvWlc1MGFXTmhkR2x2YmxObGNuWnBZMlVpTENKbGVIQWlPakUzTkRnNU1UYzRNek1zSW1saGRDSTZNVGMwT0RreE5ESXpNeXdpYm1KbUlqb3hOelE0T1RFME1qTXpmUS5WTzdZLTRwRnpFU0RaR2dHVWZBN1YyNWdta21GdlNkT2x0cEp4eGF3WmNhNnd3bjk0eGxmU2V1M2FLXzYwUWFnMkxlRDJBSVBEQXdhUkc5b19Ec2dfTkUwbTZDSkdnVm9MODdMQzhTbjNSZzQ3OVhmSDNEQ2RGQ2kxTXczMjV5a2JKZ1lwYklYa09xOWZkSF9Pd1M1d09WQURrdE9EOHRTbDZyUEloUUg4eFd1UUpqWDg3VUdOX29wVHAwZlZ3NUotQjJZa25KUlZsb3Z5NTRaVEJQa09YTVJoZWxOTkFVLS11UVhGMGppMWRBRkxnc3BuSUNXOUJyZ2lpeURsWkZnWklfTzZMd1FNUnl4SDBmdVJyaWdUQ3gxMF9FRk1uRVJVTm5Kc3QybTR4MTN5QnZRRTVhVFY1N0lVLUhWZXFUUEswYldkaTUwLUxJQ2VZeklQbjBjSGc='; // ← Replace this with your actual key
-// ==============================================================
-
-if (MY_API_KEY === 'rbx_cloud_YOUR_KEY_HERE' || !MY_API_KEY) {
-  alert('Please edit the code and replace "rbx_cloud_YOUR_KEY_HERE" with your real Roblox Cloud API key.');
-}
+const MY_API_KEY = 'poTgisiUbkaMmmCOUTd7y0gHVeVpEGhw7Dd2gTcX99PmaQWZZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNkluTnBaeTB5TURJeExUQTNMVEV6VkRFNE9qVXhPalE1V2lJc0luUjVjQ0k2SWtwWFZDSjkuZXlKaVlYTmxRWEJwUzJWNUlqb2ljRzlVWjJsemFWVmlhMkZOYlcxRFQxVlVaRGQ1TUdkSVZtVldjRVZIYUhjM1JHUXlaMVJqV0RrNVVHMWhVVmRhSWl3aWIzZHVaWEpKWkNJNklqSTVOamcwTURNMk5pSXNJbUYxWkNJNklsSnZZbXh2ZUVsdWRHVnlibUZzSWl3aWFYTnpJam9pUTJ4dmRXUkJkWFJvWlc1MGFXTmhkR2x2YmxObGNuWnBZMlVpTENKbGVIQWlPakUzTkRnNU1UYzRNek1zSW1saGRDSTZNVGMwT0RreE5ESXpNeXdpYm1KbUlqb3hOelE0T1RFME1qTXpmUS5WTzdZLTRwRnpFU0RaR2dHVWZBN1YyNWdta21GdlNkT2x0cEp4eGF3WmNhNnd3bjk0eGxmU2V1M2FLXzYwUWFnMkxlRDJBSVBEQXdhUkc5b19Ec2dfTkUwbTZDSkdnVm9MODdMQzhTbjNSZzQ3OVhmSDNEQ2RGQ2kxTXczMjV5a2JKZ1lwYklYa09xOWZkSF9Pd1M1d09WQURrdE9EOHRTbDZyUEloUUg4eFd1UUpqWDg3VUdOX29wVHAwZlZ3NUotQjJZa25KUlZsb3Z5NTRaVEJQa09YTVJoZWxOTkFVLS11UVhGMGppMWRBRkxnc3BuSUNXOUJyZ2lpeURsWkZnWklfTzZMd1FNUnl4SDBmdVJyaWdUQ3gxMF9FRk1uRVJVTm5Kc3QybTR4MTN5QnZRRTVhVFY1N0lVLUhWZXFUUEswYldkaTUwLUxJQ2VZeklQbjBjSGc=';
 
 const CONSTANTS = {
   GAR_BADGE_ID: 2124527902,
@@ -163,7 +160,6 @@ const el = {
   panelBody: document.getElementById('panelBody')
 };
 
-// Navigation
 document.querySelectorAll('.nav button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
@@ -173,7 +169,6 @@ document.querySelectorAll('.nav button').forEach(btn => {
   });
 });
 
-// Avatar tabs
 document.getElementById('renderFull').addEventListener('click', () => {
   if (avatarLarge) el.avatarImg.src = avatarLarge;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -186,7 +181,6 @@ document.getElementById('renderHead').addEventListener('click', () => {
   document.getElementById('renderHead').classList.add('active');
 });
 
-// Analyze
 async function analyze() {
   const username = el.usernameInput.value.trim();
   if (!username) {
@@ -294,7 +288,6 @@ function hideLoading() {
   el.avatarImg.style.display = 'block';
 }
 
-// All supporting functions (same as before)
 async function fetchAllBadges(userId) {
   const badges = [];
   let cursor = null;
@@ -434,12 +427,12 @@ function calculateScore(data) {
   else if (age < 90) { score += 15; reasons.push('Young account (+15)'); }
 
   if (friends === 0) { score += 15; reasons.push('No friends (+15)'); }
-  else if (friends < 5) { score += 10; reasons.push(`Few friends (${friends}) (+10)'); }
+  else if (friends < 5) { score += 10; reasons.push(`Few friends (${friends}) (+10)`); }
 
   if (!inv.isPrivate) {
     const clothing = (inv.shirts||0) + (inv.pants||0);
     if (clothing === 0 && age > 30) { score += 15; reasons.push('No clothing (+15)'); }
-    if (inv.gamepasses < 5 && age > 180) { score += 12; reasons.push(`Few gamepasses (+12)'); }
+    if (inv.gamepasses < 5 && age > 180) { score += 12; reasons.push(`Few gamepasses (+12)`); }
   }
 
   let category = 'LOW';
@@ -491,9 +484,11 @@ function renderContent() {
   } else if (activeTab === 'badges') {
     el.panelTitle.textContent = 'Badge Analysis';
     el.panelBody.innerHTML = `
-      <div class="metric-card"><div class="metric-title">Real Badges</div><div class="metric-value">${d.realBadges}</div></div>
-      <div class="metric-card"><div class="metric-title">Filtered Fake</div><div class="metric-value">${gar.filteredBadges} (${gar.filteredPercentage}%)</div></div>
-      <div class="metric-card"><div class="metric-title">GAR Badge</div><div class="metric-value">${gar.message}</div></div>
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">Real Badges</span><span class="info-value">${d.realBadges}</span></div>
+        <div class="info-item"><span class="info-label">Filtered Fake</span><span class="info-value">${gar.filteredBadges} (${gar.filteredPercentage}%)</span></div>
+        <div class="info-item"><span class="info-label">GAR Badge</span><span class="info-value">${gar.message}</span></div>
+      </div>
     `;
   } else if (activeTab === 'inventory') {
     el.panelTitle.textContent = 'Inventory';
@@ -501,22 +496,4 @@ function renderContent() {
       ? '<div class="alert alert-error">Inventory is private</div>'
       : `<div class="info-grid">
           <div class="info-item"><span class="info-label">Shirts</span><span class="info-value">${inv.shirts||0}</span></div>
-          <div class="info-item"><span class="info-label">Pants</span><span class="info-value">${inv.pants||0}</span></div>
-          <div class="info-item"><span class="info-label">Accessories</span><span class="info-value">${inv.accessories||0}</span></div>
-          <div class="info-item"><span class="info-label">Gamepasses</span><span class="info-value">${inv.gamepasses||0}</span></div>
-        </div>`;
-  } else if (activeTab === 'social') {
-    el.panelTitle.textContent = 'Social Metrics';
-    el.panelBody.innerHTML = `
-      <div class="info-grid">
-        <div class="info-item"><span class="info-label">Friends</span><span class="info-value">${d.friends}</span></div>
-        <div class="info-item"><span class="info-label">Followers</span><span class="info-value">${d.followers}</span></div>
-        <div class="info-item"><span class="info-label">Following</span><span class="info-value">${d.following}</span></div>
-        <div class="info-item"><span class="info-label">Groups</span><span class="info-value">${d.groups}</span></div>
-      </div>
-    `;
-  }
-}
-</script>
-</body>
-</html>
+          <div class="info-item"><span class="info-label
