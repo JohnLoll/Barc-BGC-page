@@ -88,7 +88,7 @@
       
       <div class="api-section">
         <div class="api-label">🔑 Roblox Cloud API Key</div>
-        <input type="text" id="apiKeyInput" class="api-input" placeholder="rbx_cloud_..." />
+        <input type="password" id="apiKeyInput" class="api-input" placeholder="rbx_cloud_..." />
         <div class="api-status" id="apiStatus"></div>
       </div>
       
@@ -153,7 +153,8 @@ let MY_API_KEY = '';
 const CONSTANTS = {
   GAR_BADGE_ID: 2124527902,
   BADGES_PER_PAGE: 30,
-  ROBLOX_CREATOR_ID: 1
+  ROBLOX_CREATOR_ID: 1,
+  MAX_ROBLOX_ACCESSORIES: 5
 };
 
 const BADGE_BLACKLIST = {
@@ -257,44 +258,67 @@ async function analyze() {
   el.statusText.textContent = 'Finding user...';
 
   try {
-    log('Fetching user ID...', 'info');
+    log('Calling username API...', 'info');
     const idRes = await fetch('https://users.roblox.com/v1/usernames/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usernames: [username] })
+      body: JSON.stringify({ usernames: [username], excludeBannedUsers: false })
     });
+    
+    log(`Username API response: ${idRes.status}`, idRes.ok ? 'success' : 'error');
+    
+    if (!idRes.ok) {
+      throw new Error(`Failed to lookup username: HTTP ${idRes.status}`);
+    }
+    
     const idData = await idRes.json();
+    log(`Username API data: ${JSON.stringify(idData)}`, 'info');
+    
     if (!idData.data?.length) {
       log(`User not found: ${username}`, 'error');
       throw new Error('User not found');
     }
+    
     currentUserId = idData.data[0].id;
     log(`Found user ID: ${currentUserId}`, 'success');
 
     el.statusText.textContent = 'Fetching user data...';
-    log('Fetching user profile...', 'info');
+    log('Fetching user profile data...', 'info');
 
-    const [
-      userInfo,
-      friends,
-      followers,
-      following,
-      groups,
-      avatarFull,
-      avatarHeadRes
-    ] = await Promise.all([
-      fetch(`https://users.roblox.com/v1/users/${currentUserId}`).then(r => r.json()),
-      fetch(`https://friends.roblox.com/v1/users/${currentUserId}/friends/count`).then(r => r.json()),
-      fetch(`https://friends.roblox.com/v1/users/${currentUserId}/followers/count`).then(r => r.json()),
-      fetch(`https://friends.roblox.com/v1/users/${currentUserId}/followings/count`).then(r => r.json()),
-      fetch(`https://groups.roblox.com/v2/users/${currentUserId}/groups/roles`).then(r => r.json()),
-      fetch(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json()),
-      fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json())
-    ]);
+    const userInfoRes = await fetch(`https://users.roblox.com/v1/users/${currentUserId}`);
+    log(`User info API: ${userInfoRes.status}`, userInfoRes.ok ? 'success' : 'error');
+    const userInfo = await userInfoRes.json();
+    log(`User info received: ${userInfo.name}`, 'success');
 
-    log('Profile data received', 'success');
-    log('Fetching badges...', 'info');
+    log('Fetching friends count...', 'info');
+    const friendsRes = await fetch(`https://friends.roblox.com/v1/users/${currentUserId}/friends/count`);
+    const friends = await friendsRes.json();
+    log(`Friends: ${friends.count}`, 'success');
+
+    log('Fetching followers count...', 'info');
+    const followersRes = await fetch(`https://friends.roblox.com/v1/users/${currentUserId}/followers/count`);
+    const followers = await followersRes.json();
+    log(`Followers: ${followers.count}`, 'success');
+
+    log('Fetching following count...', 'info');
+    const followingRes = await fetch(`https://friends.roblox.com/v1/users/${currentUserId}/followings/count`);
+    const following = await followingRes.json();
+    log(`Following: ${following.count}`, 'success');
+
+    log('Fetching groups...', 'info');
+    const groupsRes = await fetch(`https://groups.roblox.com/v2/users/${currentUserId}/groups/roles`);
+    const groups = await groupsRes.json();
+    log(`Groups: ${groups.data?.length || 0}`, 'success');
+
+    log('Fetching avatars...', 'info');
+    const avatarFullRes = await fetch(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${currentUserId}&size=420x420&format=Png`);
+    const avatarFull = await avatarFullRes.json();
     
+    const avatarHeadResData = await fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${currentUserId}&size=420x420&format=Png`);
+    const avatarHeadRes = await avatarHeadResData.json();
+    log('Avatars received', 'success');
+
+    log('Fetching all badges...', 'info');
     const rawBadges = await fetchAllBadges(currentUserId);
     log(`Fetched ${rawBadges.length} total badges`, 'success');
     
@@ -349,11 +373,12 @@ async function analyze() {
     renderContent();
 
   } catch (err) {
-    console.error(err);
+    console.error('Full error:', err);
     log(`Error: ${err.message}`, 'error');
+    log(`Error stack: ${err.stack}`, 'error');
     hideLoading();
     el.statusText.textContent = 'Error: ' + err.message;
-    el.panelBody.innerHTML = `<div class="alert alert-error"><strong>Error:</strong> ${err.message}</div>`;
+    el.panelBody.innerHTML = `<div class="alert alert-error"><strong>Error:</strong> ${err.message}<br><small>Check the logs for more details</small></div>`;
   } finally {
     el.searchBtn.disabled = false;
     el.searchBtn.textContent = 'Analyze Account';
@@ -391,11 +416,14 @@ async function fetchAllBadges(userId) {
   do {
     pageCount++;
     const url = `https://badges.roblox.com/v1/users/${userId}/badges?limit=100&sortOrder=Desc${cursor ? `&cursor=${cursor}` : ''}`;
+    log(`Fetching badges page ${pageCount}...`, 'info');
     const res = await fetch(url);
+    
     if (!res.ok) {
-      log(`Badge fetch failed on page ${pageCount}`, 'warning');
+      log(`Badge fetch failed on page ${pageCount}: HTTP ${res.status}`, 'warning');
       break;
     }
+    
     const json = await res.json();
     badges.push(...(json.data || []));
     cursor = json.nextPageCursor;
@@ -404,7 +432,7 @@ async function fetchAllBadges(userId) {
       log(`Fetched ${badges.length} badges so far...`, 'info');
     }
     
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 100));
   } while (cursor);
   
   return badges;
@@ -442,7 +470,7 @@ async function processBadges(allBadges) {
     const cid = badge.creator?.id;
     if (cid && excludedCreators.has(cid)) { filteredCount++; continue; }
 
-    if (!await isValidBadge(badge)) { filteredCount++; continue; }
+    if (!isValidBadge(badge)) { filteredCount++; continue; }
 
     if (cid) {
       const list = (window._validByCreator ||= new Map()).get(cid) || [];
@@ -469,7 +497,7 @@ async function processBadges(allBadges) {
   };
 }
 
-async function isValidBadge(badge) {
+function isValidBadge(badge) {
   if (!badge || !badge.displayName || !badge.creator?.id) return false;
   if (BADGE_BLACKLIST.GROUPS.includes(badge.creator.id)) return false;
   const clean = badge.displayName.replace(/\s/g, '');
@@ -491,16 +519,24 @@ async function fetchAllInventory(userId, apiKey) {
     log(`Fetching ${t.n}...`, 'info');
     let count = 0;
     let token = '';
+    let pageCount = 0;
+    
     do {
+      pageCount++;
       const filter = t.f === 'gamePasses=true' ? t.f : 'inventoryItemAssetTypes=' + t.f;
       const url = `https://apis.roblox.com/cloud/v2/users/${userId}/inventory-items?maxPageSize=100${token ? '&pageToken=' + token : ''}&filter=${filter}`;
+      
+      log(`Fetching ${t.n} page ${pageCount}...`, 'info');
       const res = await fetch(url, {headers:{'x-api-key':apiKey}});
+      
+      log(`${t.n} API response: ${res.status}`, res.ok ? 'success' : res.status === 403 ? 'warning' : 'error');
       
       if (res.status === 403) { 
         inv.isPrivate = true;
         log('Inventory is private (403)', 'warning');
         return inv;
       }
+      
       if (!res.ok) {
         log(`Failed to fetch ${t.n}: HTTP ${res.status}`, 'error');
         break;
@@ -508,383 +544,6 @@ async function fetchAllInventory(userId, apiKey) {
       
       const json = await res.json();
       const items = json.inventoryItems || [];
+      log(`${t.n} page ${pageCount}: ${items.length} items`, 'info');
       
-      if (t.k === 'gamepasses') {
-        count += items.filter(i => i.assetDetails?.createdBy?.id !== userId).length;
-      } else {
-        items.forEach(i => {
-          if (i.assetDetails?.createdBy?.id === CONSTANTS.ROBLOX_CREATOR_ID) {
-            if (t.k === 'accessories' && count < 5) count++;
-          } else count++;
-        });
-      }
-      token = json.nextPageToken || '';
-    } while (token);
-    inv[t.k] = count;
-    log(`Found ${count} ${t.n}`, 'success');
-  }
-  return inv;
-}
-
-function calculateScore(data) {
-  let score = 0;
-  const reasons = [];
-  const age = data.accountAge;
-  const inv = data.inventory;
-  const realBadges = data.realBadges;
-  const gar = data.garBadge;
-  const friends = data.friends;
-  const filteredPct = gar.filteredPercentage;
-
-  if (realBadges < 210) { score += 100; reasons.push('Auto-Fail: <210 real badges'); }
-  if (filteredPct >= 78 || (filteredPct >= 80 && realBadges < 750)) { score += 200; reasons.push(`Auto-Fail: ${filteredPct}% fake badges`); }
-
-  if (gar.found) {
-    const fromEnd = gar.totalPages - gar.pageNumber + 1;
-    if (fromEnd <= 2) { score += 12; reasons.push('GAR badge very old (+12)'); }
-    else if (fromEnd <= 4) { score += 8; reasons.push('GAR badge old (+8)'); }
-    else if (fromEnd <= 6) { score += 4; reasons.push('GAR badge somewhat old (+4)'); }
-  }
-
-  if (age < 7) { score += 35; reasons.push('Very new account (+35)'); }
-  else if (age < 30) { score += 25; reasons.push('New account (+25)'); }
-  else if (age < 90) { score += 15; reasons.push('Young account (+15)'); }
-
-  if (friends === 0) { score += 15; reasons.push('No friends (+15)'); }
-  else if (friends < 5) { score += 10; reasons.push(`Few friends (${friends}) (+10)`); }
-
-  if (!inv.isPrivate) {
-    const clothing = (inv.shirts||0) + (inv.pants||0);
-    if (clothing === 0 && age > 30) { score += 15; reasons.push('No clothing (+15)'); }
-    if (inv.gamepasses < 5 && age > 180) { score += 12; reasons.push(`Few gamepasses (+12)`); }
-  }
-
-  let category = 'LOW';
-  if (score >= 200) category = 'Auto-Failed (Fake Badges)';
-  else if (score >= 100) category = 'Auto-Failed (Insufficient Badges)';
-  else if (score >= 50) category = 'HIGH';
-  else if (score >= 16) category = 'MEDIUM-HIGH';
-  else if (score >= 8) category = 'MEDIUM';
-
-  return {score, category, reasons};
-}
-
-function renderContent() {
-  if (!currentUserData) return;
-
-  const d = currentUserData;
-  const inv = d.inventory;
-  const gar = d.garBadge;
-  const {score, category, reasons} = calculateScore(d);
-
-  const badgeCls = category.includes('Auto-Failed') ? 'badge-auto-fail' :
-                   category === 'HIGH' ? 'badge-high' :
-                   category === 'MEDIUM-HIGH' ? 'badge-medium-high' :
-                   category === 'MEDIUM' ? 'badge-medium' : 'badge-low';
-
-  if (activeTab === 'overview') {
-    el.panelTitle.textContent = 'Alt Risk Assessment';
-    el.panelBody.innerHTML = `
-      <div class="alert ${category.includes('Auto-Failed') || category === 'HIGH' ? 'alert-error' : category === 'LOW' ? 'alert-success' : 'alert-warning'}">
-        <strong>Alt Likelihood: <span class="badge ${badgeCls}">${category}</span></strong>
-        <div style="margin-top:10px;font-size:18px">Score: ${score}+</div>
-      </div>
-      <div class="section-title">Detection Reasons</div>
-      <ul class="reasons-list">${reasons.map(r => `<li>${r}</li>`).join('')}</ul>
-      <div class="section-title">Key Stats</div>
-      <div class="info-grid">
-        <div class="info-item"><span class="info-label">Age</span><span class="info-value">${d.accountAge} days</span></div>
-        <div class="info-item"><span class="info-label">Real Badges</span><span class="info-value">${d.realBadges}</span></div>
-        <div class="info-item"><span class="info-label">Fake %</span><span class="info-value">${gar.filteredPercentage}%</span></div>
-        <div class="info-item"><span class="info-label">GAR Badge</span><span class="info-value">${gar.message}</span></div>
-        <div class="info-item"><span class="info-label">Friends</span><span class="info-value">${d.friends}</span></div>
-        <div class="info-item"><span class="info-label">Groups</span><span class="info-value">${d.groups}</span></div>
-        ${inv.isPrivate ? '<div class="info-item"><span class="info-label">Inventory</span><span class="info-value">Private</span></div>' :
-         `<div class="info-item"><span class="info-label">Clothing</span><span class="info-value">${(inv.shirts||0)+(inv.pants||0)}</span></div>
-          <div class="info-item"><span class="info-label">Gamepasses</span><span class="info-value">${inv.gamepasses||0}</span></div>`}
-        <div class="info-item"><span class="info-label">Profile</span><span class="info-value"><a href="https://www.roblox.com/users/${currentUserId}/profile" target="_blank" style="color:#60a5fa">View</a></span></div>
-      </div>
-    `;
-  } else if (activeTab === 'badges') {
-    el.panelTitle.textContent = 'Badge Analysis';
-    el.panelBody.innerHTML = `
-      <div class="info-grid">
-        <div class="info-item"><span class="info-label">Real Badges</span><span class="info-value">${d.realBadges}</span></div>
-        <div class="info-item"><span class="info-label">Filtered Fake</span><span class="info-value">${gar.filteredBadges} (${gar.filteredPercentage}%)</span></div>
-        <div class="info-item"><span class="info-label">GAR Badge</span><span class="info-value">${gar.message}</span></div>
-        <div class="info-item"><span class="info-label">Total Badge Pages</span><span class="info-value">${gar.totalPages}</span></div>
-      </div>
-    `;
-  } else if (activeTab === 'inventory') {
-    el.panelTitle.textContent = 'Inventory';
-    el.panelBody.innerHTML = inv.isPrivate 
-      ? '<div class="alert alert-error">Inventory is private</div>'
-      : `<div class="info-grid">
-          <div class="info-item"><span class="info-label">Shirts</span><span class="info-value">${inv.shirts||0}</span></div>
-          <div class="info-item"><span class="info-label">Pants</span><span class="info-value">${inv.pants||0}</span></div>
-          <div class="info-item"><span class="info-label">Accessories</span><span class="info-value">${inv.accessories||0}</span></div>
-          <div class="info-item"><span class="info-label">Gamepasses</span><span class="info-value">${inv.gamepasses||0}</span></div>
-        </div>`;
-  } else if (activeTab === 'social') {
-    el.panelTitle.textContent = 'Social Metrics';
-    el.panelBody.innerHTML = `
-      <div class="info-grid">
-        <div class="info-item"><span class="info-label">Friends</span><span class="info-value">${d.friends}</span></div>
-        <div class="info-item"><span class="info-label">Followers</span><span class="info-value">${d.followers}</span></div>
-        <div class="info-item"><span class="info-label">Following</span><span class="info-value">${d.following}</span></div>
-        <div class="info-item"><span class="info-label">Groups</span><span class="info-value">${d.groups}</span></div>
-      </div>
-    `;
-  }
-}
-
-log('Alt Detector initialized. Enter your API key to begin.', 'success');
-</script>ameSmall.textContent = '@' + userInfo.name;
-    el.bio.textContent = userInfo.description || 'No bio';
-    el.bio.style.display = userInfo.description ? 'block' : 'none';
-    el.accountAge.textContent = ageDays + 'd';
-    el.friendsCount.textContent = currentUserData.friends;
-    el.followersCount.textContent = currentUserData.followers;
-    el.followingCount.textContent = currentUserData.following;
-    if (avatarLarge) el.avatarImg.src = avatarLarge;
-
-    hideLoading();
-    el.statusText.textContent = 'Analysis complete!';
-    renderContent();
-
-  } catch (err) {
-    console.error(err);
-    hideLoading();
-    el.statusText.textContent = 'Error: ' + err.message;
-    el.panelBody.innerHTML = `<div class="alert alert-error"><strong>Error:</strong> ${err.message}</div>`;
-  } finally {
-    el.searchBtn.disabled = false;
-    el.searchBtn.textContent = 'Analyze Account';
-  }
-}
-
-el.searchBtn.addEventListener('click', analyze);
-el.usernameInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter') analyze();
-});
-
-function showLoading() {
-  el.avatarSkeleton.style.display = 'block';
-  el.avatarImg.style.display = 'none';
-  el.panelBody.innerHTML = '<div class="skeleton" style="height:600px;border-radius:16px"></div>';
-}
-
-function hideLoading() {
-  el.avatarSkeleton.style.display = 'none';
-  el.avatarImg.style.display = 'block';
-}
-
-async function fetchAllBadges(userId) {
-  const badges = [];
-  let cursor = null;
-  do {
-    const url = `https://badges.roblox.com/v1/users/${userId}/badges?limit=100&sortOrder=Desc${cursor ? `&cursor=${cursor}` : ''}`;
-    const res = await fetch(url);
-    if (!res.ok) break;
-    const json = await res.json();
-    badges.push(...(json.data || []));
-    cursor = json.nextPageCursor;
-    await new Promise(r => setTimeout(r, 50));
-  } while (cursor);
-  return badges;
-}
-
-async function processBadges(allBadges) {
-  let validCount = 0;
-  let filteredCount = 0;
-  let garFound = false;
-  let garPosition = null;
-
-  const excludedCreators = new Set();
-  const creatorCounts = new Map();
-
-  for (const b of allBadges) {
-    const cid = b.creator?.id;
-    if (cid) {
-      const c = (creatorCounts.get(cid) || 0) + 1;
-      creatorCounts.set(cid, c);
-      if (c >= 50) excludedCreators.add(cid);
-    }
-  }
-
-  for (const [i, badge] of allBadges.entries()) {
-    if (badge.id === CONSTANTS.GAR_BADGE_ID) {
-      garFound = true;
-      garPosition = i;
-    }
-
-    const cid = badge.creator?.id;
-    if (cid && excludedCreators.has(cid)) { filteredCount++; continue; }
-
-    if (!await isValidBadge(badge)) { filteredCount++; continue; }
-
-    if (cid) {
-      const list = (window._validByCreator ||= new Map()).get(cid) || [];
-      if (list.length < 15) {
-        list.push(badge);
-        window._validByCreator.set(cid, list);
-        validCount++;
-      } else filteredCount++;
-    } else filteredCount++;
-  }
-
-  const totalPages = Math.ceil(allBadges.length / CONSTANTS.BADGES_PER_PAGE);
-  const garPage = garFound ? Math.floor(garPosition / CONSTANTS.BADGES_PER_PAGE) + 1 : null;
-  const filteredPct = allBadges.length ? (filteredCount / allBadges.length * 100).toFixed(1) : 0;
-
-  return {
-    found: garFound,
-    pageNumber: garPage,
-    totalPages,
-    totalBadges: validCount,
-    filteredBadges: filteredCount,
-    filteredPercentage: parseFloat(filteredPct),
-    message: garFound ? `Page ${garPage} of ${totalPages}` : 'Not found'
-  };
-}
-
-async function isValidBadge(badge) {
-  if (!badge || !badge.displayName || !badge.creator?.id) return false;
-  if (BADGE_BLACKLIST.GROUPS.includes(badge.creator.id)) return false;
-  const clean = badge.displayName.replace(/\s/g, '');
-  if (/^\d+$/.test(clean)) return false;
-  const lower = badge.displayName.toLowerCase();
-  return !BADGE_BLACKLIST.KEYWORDS.some(kw => lower.includes(kw));
-}
-
-async function fetchAllInventory(userId, apiKey) {
-  const inv = {shirts:0,pants:0,accessories:0,gamepasses:0,isPrivate:false};
-  const types = [
-    {k:'shirts',f:'CLASSIC_SHIRT'},
-    {k:'pants',f:'CLASSIC_PANTS'},
-    {k:'accessories',f:'HAT'},
-    {k:'gamepasses',f:'gamePasses=true'}
-  ];
-
-  for (const t of types) {
-    let count = 0;
-    let token = '';
-    do {
-      const filter = t.f === 'gamePasses=true' ? t.f : 'inventoryItemAssetTypes=' + t.f;
-      const url = `https://apis.roblox.com/cloud/v2/users/${userId}/inventory-items?maxPageSize=100${token ? '&pageToken=' + token : ''}&filter=${filter}`;
-      const res = await fetch(url, {headers:{'x-api-key':apiKey}});
-      if (res.status === 403) { inv.isPrivate = true; return inv; }
-      if (!res.ok) break;
-      const json = await res.json();
-      const items = json.inventoryItems || [];
-      if (t.k === 'gamepasses') {
-        count += items.filter(i => i.assetDetails?.createdBy?.id !== userId).length;
-      } else {
-        items.forEach(i => {
-          if (i.assetDetails?.createdBy?.id === CONSTANTS.ROBLOX_CREATOR_ID) {
-            if (t.k === 'accessories' && count < 5) count++;
-          } else count++;
-        });
-      }
-      token = json.nextPageToken || '';
-    } while (token);
-    inv[t.k] = count;
-  }
-  return inv;
-}
-
-function calculateScore(data) {
-  let score = 0;
-  const reasons = [];
-  const age = data.accountAge;
-  const inv = data.inventory;
-  const realBadges = data.realBadges;
-  const gar = data.garBadge;
-  const friends = data.friends;
-  const filteredPct = gar.filteredPercentage;
-
-  if (realBadges < 210) { score += 100; reasons.push('Auto-Fail: <210 real badges'); }
-  if (filteredPct >= 78 || (filteredPct >= 80 && realBadges < 750)) { score += 200; reasons.push(`Auto-Fail: ${filteredPct}% fake badges`); }
-
-  if (gar.found) {
-    const fromEnd = gar.totalPages - gar.pageNumber + 1;
-    if (fromEnd <= 2) { score += 12; reasons.push('GAR badge very old (+12)'); }
-    else if (fromEnd <= 4) { score += 8; reasons.push('GAR badge old (+8)'); }
-    else if (fromEnd <= 6) { score += 4; reasons.push('GAR badge somewhat old (+4)'); }
-  }
-
-  if (age < 7) { score += 35; reasons.push('Very new account (+35)'); }
-  else if (age < 30) { score += 25; reasons.push('New account (+25)'); }
-  else if (age < 90) { score += 15; reasons.push('Young account (+15)'); }
-
-  if (friends === 0) { score += 15; reasons.push('No friends (+15)'); }
-  else if (friends < 5) { score += 10; reasons.push(`Few friends (${friends}) (+10)`); }
-
-  if (!inv.isPrivate) {
-    const clothing = (inv.shirts||0) + (inv.pants||0);
-    if (clothing === 0 && age > 30) { score += 15; reasons.push('No clothing (+15)'); }
-    if (inv.gamepasses < 5 && age > 180) { score += 12; reasons.push(`Few gamepasses (+12)`); }
-  }
-
-  let category = 'LOW';
-  if (score >= 200) category = 'Auto-Failed (Fake Badges)';
-  else if (score >= 100) category = 'Auto-Failed (Insufficient Badges)';
-  else if (score >= 50) category = 'HIGH';
-  else if (score >= 16) category = 'MEDIUM-HIGH';
-  else if (score >= 8) category = 'MEDIUM';
-
-  return {score, category, reasons};
-}
-
-function renderContent() {
-  if (!currentUserData) return;
-
-  const d = currentUserData;
-  const inv = d.inventory;
-  const gar = d.garBadge;
-  const {score, category, reasons} = calculateScore(d);
-
-  const badgeCls = category.includes('Auto-Failed') ? 'badge-auto-fail' :
-                   category === 'HIGH' ? 'badge-high' :
-                   category === 'MEDIUM-HIGH' ? 'badge-medium-high' :
-                   category === 'MEDIUM' ? 'badge-medium' : 'badge-low';
-
-  if (activeTab === 'overview') {
-    el.panelTitle.textContent = 'Alt Risk Assessment';
-    el.panelBody.innerHTML = `
-      <div class="alert ${category.includes('Auto-Failed') || category === 'HIGH' ? 'alert-error' : category === 'LOW' ? 'alert-success' : 'alert-warning'}">
-        <strong>Alt Likelihood: <span class="badge ${badgeCls}">${category}</span></strong>
-        <div style="margin-top:10px;font-size:18px">Score: ${score}+</div>
-      </div>
-      <div class="section-title">Detection Reasons</div>
-      <ul class="reasons-list">${reasons.map(r => `<li>${r}</li>`).join('')}</ul>
-      <div class="section-title">Key Stats</div>
-      <div class="info-grid">
-        <div class="info-item"><span class="info-label">Age</span><span class="info-value">${d.accountAge} days</span></div>
-        <div class="info-item"><span class="info-label">Real Badges</span><span class="info-value">${d.realBadges}</span></div>
-        <div class="info-item"><span class="info-label">Fake %</span><span class="info-value">${gar.filteredPercentage}%</span></div>
-        <div class="info-item"><span class="info-label">GAR Badge</span><span class="info-value">${gar.message}</span></div>
-        <div class="info-item"><span class="info-label">Friends</span><span class="info-value">${d.friends}</span></div>
-        <div class="info-item"><span class="info-label">Groups</span><span class="info-value">${d.groups}</span></div>
-        ${inv.isPrivate ? '<div class="info-item"><span class="info-label">Inventory</span><span class="info-value">Private</span></div>' :
-         `<div class="info-item"><span class="info-label">Clothing</span><span class="info-value">${(inv.shirts||0)+(inv.pants||0)}</span></div>
-          <div class="info-item"><span class="info-label">Gamepasses</span><span class="info-value">${inv.gamepasses||0}</span></div>`}
-        <div class="info-item"><span class="info-label">Profile</span><span class="info-value"><a href="https://www.roblox.com/users/${currentUserId}/profile" target="_blank" style="color:#60a5fa">View</a></span></div>
-      </div>
-    `;
-  } else if (activeTab === 'badges') {
-    el.panelTitle.textContent = 'Badge Analysis';
-    el.panelBody.innerHTML = `
-      <div class="info-grid">
-        <div class="info-item"><span class="info-label">Real Badges</span><span class="info-value">${d.realBadges}</span></div>
-        <div class="info-item"><span class="info-label">Filtered Fake</span><span class="info-value">${gar.filteredBadges} (${gar.filteredPercentage}%)</span></div>
-        <div class="info-item"><span class="info-label">GAR Badge</span><span class="info-value">${gar.message}</span></div>
-      </div>
-    `;
-  } else if (activeTab === 'inventory') {
-    el.panelTitle.textContent = 'Inventory';
-    el.panelBody.innerHTML = inv.isPrivate 
-      ? '<div class="alert alert-error">Inventory is private</div>'
-      : `<div class="info-grid">
-          <div class="info-item"><span class="info-label">Shirts</span><span class="info-value">${inv.shirts||0}</span></div>
-          <div class="info-item"><span class="info-label
+      if (t.k === 'gam
