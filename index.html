@@ -8,9 +8,23 @@
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#0a0e27;color:#e8eaf6;line-height:1.6}
     .app{display:flex;min-height:100vh}
-    .sidebar{width:260px;background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);padding:24px;display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,0.4)}
-    .brand{font-size:20px;font-weight:800;margin-bottom:32px;color:#60a5fa;text-align:center}
-    .nav{display:flex;flex-direction:column;gap:8px}
+    .sidebar{width:300px;background:linear-gradient(180deg,#0f172a 0%,#1e293b 100%);padding:24px;display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,0.4);overflow:hidden}
+    .brand{font-size:20px;font-weight:800;margin-bottom:20px;color:#60a5fa;text-align:center}
+    .api-section{margin-bottom:20px;padding:16px;background:#0f172a;border-radius:12px;border:2px solid #334155}
+    .api-label{color:#94a3b8;font-size:13px;margin-bottom:8px;font-weight:600}
+    .api-input{width:100%;padding:10px;border-radius:8px;border:2px solid #334155;background:#1e293b;color:#f1f5f9;font-size:13px;font-family:monospace}
+    .api-input:focus{outline:none;border-color:#3b82f6}
+    .api-status{margin-top:8px;font-size:12px;color:#22c55e}
+    .logs-section{flex:1;display:flex;flex-direction:column;margin-top:20px;min-height:0}
+    .logs-title{color:#94a3b8;font-size:13px;margin-bottom:8px;font-weight:600}
+    .logs-container{flex:1;background:#0f172a;border-radius:8px;padding:12px;overflow-y:auto;font-size:12px;font-family:monospace;color:#cbd5e1;border:2px solid #334155;min-height:200px}
+    .log-entry{padding:6px 0;border-bottom:1px solid #1e293b}
+    .log-entry:last-child{border-bottom:none}
+    .log-info{color:#60a5fa}
+    .log-success{color:#22c55e}
+    .log-error{color:#ef4444}
+    .log-warning{color:#f59e0b}
+    .nav{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
     .nav button{background:transparent;border:0;color:#cbd5e1;padding:14px 16px;border-radius:10px;text-align:left;cursor:pointer;font-weight:500;transition:all .2s;font-size:15px}
     .nav button:hover{background:#1e293b;color:#f1f5f9}
     .nav button.active{background:#3b82f6;color:white;font-weight:600;box-shadow:0 4px 12px rgba(59,130,246,.4)}
@@ -71,14 +85,23 @@
   <div class="app">
     <aside class="sidebar">
       <div class="brand">Advanced Alt Detector</div>
+      
+      <div class="api-section">
+        <div class="api-label">🔑 Roblox Cloud API Key</div>
+        <input type="text" id="apiKeyInput" class="api-input" placeholder="rbx_cloud_..." />
+        <div class="api-status" id="apiStatus"></div>
+      </div>
+      
       <div class="nav">
         <button class="active" data-tab="overview">Overview</button>
         <button data-tab="badges">Badges</button>
         <button data-tab="inventory">Inventory</button>
         <button data-tab="social">Social</button>
       </div>
-      <div style="margin-top:auto;font-size:13px;color:#64748b;text-align:center;padding-top:20px;">
-        v3.0 • GitHub Pages
+      
+      <div class="logs-section">
+        <div class="logs-title">📋 Activity Logs</div>
+        <div class="logs-container" id="logsContainer"></div>
       </div>
     </aside>
 
@@ -125,7 +148,7 @@
   </div>
 
 <script>
-const MY_API_KEY = 'poTgisiUbkaMmmCOUTd7y0gHVeVpEGhw7Dd2gTcX99PmaQWZZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNkluTnBaeTB5TURJeExUQTNMVEV6VkRFNE9qVXhPalE1V2lJc0luUjVjQ0k2SWtwWFZDSjkuZXlKaVlYTmxRWEJwUzJWNUlqb2ljRzlVWjJsemFWVmlhMkZOYlcxRFQxVlVaRGQ1TUdkSVZtVldjRVZIYUhjM1JHUXlaMVJqV0RrNVVHMWhVVmRhSWl3aWIzZHVaWEpKWkNJNklqSTVOamcwTURNMk5pSXNJbUYxWkNJNklsSnZZbXh2ZUVsdWRHVnlibUZzSWl3aWFYTnpJam9pUTJ4dmRXUkJkWFJvWlc1MGFXTmhkR2x2YmxObGNuWnBZMlVpTENKbGVIQWlPakUzTkRnNU1UYzRNek1zSW1saGRDSTZNVGMwT0RreE5ESXpNeXdpYm1KbUlqb3hOelE0T1RFME1qTXpmUS5WTzdZLTRwRnpFU0RaR2dHVWZBN1YyNWdta21GdlNkT2x0cEp4eGF3WmNhNnd3bjk0eGxmU2V1M2FLXzYwUWFnMkxlRDJBSVBEQXdhUkc5b19Ec2dfTkUwbTZDSkdnVm9MODdMQzhTbjNSZzQ3OVhmSDNEQ2RGQ2kxTXczMjV5a2JKZ1lwYklYa09xOWZkSF9Pd1M1d09WQURrdE9EOHRTbDZyUEloUUg4eFd1UUpqWDg3VUdOX29wVHAwZlZ3NUotQjJZa25KUlZsb3Z5NTRaVEJQa09YTVJoZWxOTkFVLS11UVhGMGppMWRBRkxnc3BuSUNXOUJyZ2lpeURsWkZnWklfTzZMd1FNUnl4SDBmdVJyaWdUQ3gxMF9FRk1uRVJVTm5Kc3QybTR4MTN5QnZRRTVhVFY1N0lVLUhWZXFUUEswYldkaTUwLUxJQ2VZeklQbjBjSGc=';
+let MY_API_KEY = '';
 
 const CONSTANTS = {
   GAR_BADGE_ID: 2124527902,
@@ -144,6 +167,9 @@ let activeTab = 'overview';
 let avatarLarge = null, avatarHead = null;
 
 const el = {
+  apiKeyInput: document.getElementById('apiKeyInput'),
+  apiStatus: document.getElementById('apiStatus'),
+  logsContainer: document.getElementById('logsContainer'),
   usernameInput: document.getElementById('usernameInput'),
   searchBtn: document.getElementById('searchBtn'),
   statusText: document.getElementById('statusText'),
@@ -160,8 +186,30 @@ const el = {
   panelBody: document.getElementById('panelBody')
 };
 
+function log(message, type = 'info') {
+  const timestamp = new Date().toLocaleTimeString();
+  const entry = document.createElement('div');
+  entry.className = `log-entry log-${type}`;
+  entry.textContent = `[${timestamp}] ${message}`;
+  el.logsContainer.appendChild(entry);
+  el.logsContainer.scrollTop = el.logsContainer.scrollHeight;
+  console.log(`[${type.toUpperCase()}] ${message}`);
+}
+
+el.apiKeyInput.addEventListener('input', (e) => {
+  MY_API_KEY = e.target.value.trim();
+  if (MY_API_KEY) {
+    el.apiStatus.textContent = '✓ API Key Set';
+    el.apiStatus.style.color = '#22c55e';
+    log('API Key configured', 'success');
+  } else {
+    el.apiStatus.textContent = '';
+  }
+});
+
 document.querySelectorAll('.nav button').forEach(btn => {
   btn.addEventListener('click', () => {
+    log(`Switched to ${btn.dataset.tab} tab`, 'info');
     document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     activeTab = btn.dataset.tab;
@@ -170,40 +218,61 @@ document.querySelectorAll('.nav button').forEach(btn => {
 });
 
 document.getElementById('renderFull').addEventListener('click', () => {
-  if (avatarLarge) el.avatarImg.src = avatarLarge;
+  if (avatarLarge) {
+    el.avatarImg.src = avatarLarge;
+    log('Switched to full body avatar', 'info');
+  }
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('renderFull').classList.add('active');
 });
 
 document.getElementById('renderHead').addEventListener('click', () => {
-  if (avatarHead) el.avatarImg.src = avatarHead;
+  if (avatarHead) {
+    el.avatarImg.src = avatarHead;
+    log('Switched to headshot avatar', 'info');
+  }
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('renderHead').classList.add('active');
 });
 
 async function analyze() {
   const username = el.usernameInput.value.trim();
+  
   if (!username) {
+    log('No username entered', 'error');
     alert('Please enter a Roblox username');
     return;
   }
 
+  if (!MY_API_KEY) {
+    log('No API key configured', 'error');
+    alert('Please enter your Roblox Cloud API Key in the sidebar');
+    return;
+  }
+
+  log(`Starting analysis for: ${username}`, 'info');
   el.searchBtn.disabled = true;
   el.searchBtn.textContent = 'Analyzing...';
   showLoading();
   el.statusText.textContent = 'Finding user...';
 
   try {
+    log('Fetching user ID...', 'info');
     const idRes = await fetch('https://users.roblox.com/v1/usernames/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ usernames: [username] })
     });
     const idData = await idRes.json();
-    if (!idData.data?.length) throw new Error('User not found');
+    if (!idData.data?.length) {
+      log(`User not found: ${username}`, 'error');
+      throw new Error('User not found');
+    }
     currentUserId = idData.data[0].id;
+    log(`Found user ID: ${currentUserId}`, 'success');
 
-    el.statusText.textContent = 'Fetching data...';
+    el.statusText.textContent = 'Fetching user data...';
+    log('Fetching user profile...', 'info');
 
     const [
       userInfo,
@@ -212,9 +281,7 @@ async function analyze() {
       following,
       groups,
       avatarFull,
-      avatarHeadRes,
-      rawBadges,
-      inventory
+      avatarHeadRes
     ] = await Promise.all([
       fetch(`https://users.roblox.com/v1/users/${currentUserId}`).then(r => r.json()),
       fetch(`https://friends.roblox.com/v1/users/${currentUserId}/friends/count`).then(r => r.json()),
@@ -222,13 +289,29 @@ async function analyze() {
       fetch(`https://friends.roblox.com/v1/users/${currentUserId}/followings/count`).then(r => r.json()),
       fetch(`https://groups.roblox.com/v2/users/${currentUserId}/groups/roles`).then(r => r.json()),
       fetch(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json()),
-      fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json()),
-      fetchAllBadges(currentUserId),
-      fetchAllInventory(currentUserId, MY_API_KEY)
+      fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${currentUserId}&size=420x420&format=Png`).then(r => r.json())
     ]);
 
-    const ageDays = Math.floor((Date.now() - new Date(userInfo.created)) / 86400000);
+    log('Profile data received', 'success');
+    log('Fetching badges...', 'info');
+    
+    const rawBadges = await fetchAllBadges(currentUserId);
+    log(`Fetched ${rawBadges.length} total badges`, 'success');
+    
+    log('Processing badges...', 'info');
     const garResult = await processBadges(rawBadges);
+    log(`Valid badges: ${garResult.totalBadges}, Filtered: ${garResult.filteredBadges} (${garResult.filteredPercentage}%)`, 'success');
+
+    log('Fetching inventory...', 'info');
+    const inventory = await fetchAllInventory(currentUserId, MY_API_KEY);
+    
+    if (inventory.isPrivate) {
+      log('Inventory is private', 'warning');
+    } else {
+      log(`Inventory: ${inventory.shirts} shirts, ${inventory.pants} pants, ${inventory.accessories} accessories, ${inventory.gamepasses} gamepasses`, 'success');
+    }
+
+    const ageDays = Math.floor((Date.now() - new Date(userInfo.created)) / 86400000);
 
     currentUserData = {
       userInfo,
@@ -249,6 +332,314 @@ async function analyze() {
 
     el.displayName.textContent = userInfo.displayName || userInfo.name;
     el.usernameSmall.textContent = '@' + userInfo.name;
+    el.bio.textContent = userInfo.description || 'No bio';
+    el.bio.style.display = userInfo.description ? 'block' : 'none';
+    el.accountAge.textContent = ageDays + 'd';
+    el.friendsCount.textContent = currentUserData.friends;
+    el.followersCount.textContent = currentUserData.followers;
+    el.followingCount.textContent = currentUserData.following;
+    if (avatarLarge) el.avatarImg.src = avatarLarge;
+
+    hideLoading();
+    el.statusText.textContent = 'Analysis complete!';
+    
+    const {score, category} = calculateScore(currentUserData);
+    log(`Analysis complete! Score: ${score}, Category: ${category}`, 'success');
+    
+    renderContent();
+
+  } catch (err) {
+    console.error(err);
+    log(`Error: ${err.message}`, 'error');
+    hideLoading();
+    el.statusText.textContent = 'Error: ' + err.message;
+    el.panelBody.innerHTML = `<div class="alert alert-error"><strong>Error:</strong> ${err.message}</div>`;
+  } finally {
+    el.searchBtn.disabled = false;
+    el.searchBtn.textContent = 'Analyze Account';
+  }
+}
+
+el.searchBtn.addEventListener('click', () => {
+  log('Analyze button clicked', 'info');
+  analyze();
+});
+
+el.usernameInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    log('Enter key pressed', 'info');
+    analyze();
+  }
+});
+
+function showLoading() {
+  el.avatarSkeleton.style.display = 'block';
+  el.avatarImg.style.display = 'none';
+  el.panelBody.innerHTML = '<div class="skeleton" style="height:600px;border-radius:16px"></div>';
+}
+
+function hideLoading() {
+  el.avatarSkeleton.style.display = 'none';
+  el.avatarImg.style.display = 'block';
+}
+
+async function fetchAllBadges(userId) {
+  const badges = [];
+  let cursor = null;
+  let pageCount = 0;
+  
+  do {
+    pageCount++;
+    const url = `https://badges.roblox.com/v1/users/${userId}/badges?limit=100&sortOrder=Desc${cursor ? `&cursor=${cursor}` : ''}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      log(`Badge fetch failed on page ${pageCount}`, 'warning');
+      break;
+    }
+    const json = await res.json();
+    badges.push(...(json.data || []));
+    cursor = json.nextPageCursor;
+    
+    if (pageCount % 5 === 0) {
+      log(`Fetched ${badges.length} badges so far...`, 'info');
+    }
+    
+    await new Promise(r => setTimeout(r, 50));
+  } while (cursor);
+  
+  return badges;
+}
+
+async function processBadges(allBadges) {
+  let validCount = 0;
+  let filteredCount = 0;
+  let garFound = false;
+  let garPosition = null;
+
+  const excludedCreators = new Set();
+  const creatorCounts = new Map();
+
+  log('Analyzing badge creators...', 'info');
+  
+  for (const b of allBadges) {
+    const cid = b.creator?.id;
+    if (cid) {
+      const c = (creatorCounts.get(cid) || 0) + 1;
+      creatorCounts.set(cid, c);
+      if (c >= 50) excludedCreators.add(cid);
+    }
+  }
+
+  log(`Found ${excludedCreators.size} creators with 50+ badges`, 'info');
+
+  for (const [i, badge] of allBadges.entries()) {
+    if (badge.id === CONSTANTS.GAR_BADGE_ID) {
+      garFound = true;
+      garPosition = i;
+      log('GAR badge found!', 'success');
+    }
+
+    const cid = badge.creator?.id;
+    if (cid && excludedCreators.has(cid)) { filteredCount++; continue; }
+
+    if (!await isValidBadge(badge)) { filteredCount++; continue; }
+
+    if (cid) {
+      const list = (window._validByCreator ||= new Map()).get(cid) || [];
+      if (list.length < 15) {
+        list.push(badge);
+        window._validByCreator.set(cid, list);
+        validCount++;
+      } else filteredCount++;
+    } else filteredCount++;
+  }
+
+  const totalPages = Math.ceil(allBadges.length / CONSTANTS.BADGES_PER_PAGE);
+  const garPage = garFound ? Math.floor(garPosition / CONSTANTS.BADGES_PER_PAGE) + 1 : null;
+  const filteredPct = allBadges.length ? (filteredCount / allBadges.length * 100).toFixed(1) : 0;
+
+  return {
+    found: garFound,
+    pageNumber: garPage,
+    totalPages,
+    totalBadges: validCount,
+    filteredBadges: filteredCount,
+    filteredPercentage: parseFloat(filteredPct),
+    message: garFound ? `Page ${garPage} of ${totalPages}` : 'Not found'
+  };
+}
+
+async function isValidBadge(badge) {
+  if (!badge || !badge.displayName || !badge.creator?.id) return false;
+  if (BADGE_BLACKLIST.GROUPS.includes(badge.creator.id)) return false;
+  const clean = badge.displayName.replace(/\s/g, '');
+  if (/^\d+$/.test(clean)) return false;
+  const lower = badge.displayName.toLowerCase();
+  return !BADGE_BLACKLIST.KEYWORDS.some(kw => lower.includes(kw));
+}
+
+async function fetchAllInventory(userId, apiKey) {
+  const inv = {shirts:0,pants:0,accessories:0,gamepasses:0,isPrivate:false};
+  const types = [
+    {k:'shirts',f:'CLASSIC_SHIRT',n:'shirts'},
+    {k:'pants',f:'CLASSIC_PANTS',n:'pants'},
+    {k:'accessories',f:'HAT',n:'accessories'},
+    {k:'gamepasses',f:'gamePasses=true',n:'gamepasses'}
+  ];
+
+  for (const t of types) {
+    log(`Fetching ${t.n}...`, 'info');
+    let count = 0;
+    let token = '';
+    do {
+      const filter = t.f === 'gamePasses=true' ? t.f : 'inventoryItemAssetTypes=' + t.f;
+      const url = `https://apis.roblox.com/cloud/v2/users/${userId}/inventory-items?maxPageSize=100${token ? '&pageToken=' + token : ''}&filter=${filter}`;
+      const res = await fetch(url, {headers:{'x-api-key':apiKey}});
+      
+      if (res.status === 403) { 
+        inv.isPrivate = true;
+        log('Inventory is private (403)', 'warning');
+        return inv;
+      }
+      if (!res.ok) {
+        log(`Failed to fetch ${t.n}: HTTP ${res.status}`, 'error');
+        break;
+      }
+      
+      const json = await res.json();
+      const items = json.inventoryItems || [];
+      
+      if (t.k === 'gamepasses') {
+        count += items.filter(i => i.assetDetails?.createdBy?.id !== userId).length;
+      } else {
+        items.forEach(i => {
+          if (i.assetDetails?.createdBy?.id === CONSTANTS.ROBLOX_CREATOR_ID) {
+            if (t.k === 'accessories' && count < 5) count++;
+          } else count++;
+        });
+      }
+      token = json.nextPageToken || '';
+    } while (token);
+    inv[t.k] = count;
+    log(`Found ${count} ${t.n}`, 'success');
+  }
+  return inv;
+}
+
+function calculateScore(data) {
+  let score = 0;
+  const reasons = [];
+  const age = data.accountAge;
+  const inv = data.inventory;
+  const realBadges = data.realBadges;
+  const gar = data.garBadge;
+  const friends = data.friends;
+  const filteredPct = gar.filteredPercentage;
+
+  if (realBadges < 210) { score += 100; reasons.push('Auto-Fail: <210 real badges'); }
+  if (filteredPct >= 78 || (filteredPct >= 80 && realBadges < 750)) { score += 200; reasons.push(`Auto-Fail: ${filteredPct}% fake badges`); }
+
+  if (gar.found) {
+    const fromEnd = gar.totalPages - gar.pageNumber + 1;
+    if (fromEnd <= 2) { score += 12; reasons.push('GAR badge very old (+12)'); }
+    else if (fromEnd <= 4) { score += 8; reasons.push('GAR badge old (+8)'); }
+    else if (fromEnd <= 6) { score += 4; reasons.push('GAR badge somewhat old (+4)'); }
+  }
+
+  if (age < 7) { score += 35; reasons.push('Very new account (+35)'); }
+  else if (age < 30) { score += 25; reasons.push('New account (+25)'); }
+  else if (age < 90) { score += 15; reasons.push('Young account (+15)'); }
+
+  if (friends === 0) { score += 15; reasons.push('No friends (+15)'); }
+  else if (friends < 5) { score += 10; reasons.push(`Few friends (${friends}) (+10)`); }
+
+  if (!inv.isPrivate) {
+    const clothing = (inv.shirts||0) + (inv.pants||0);
+    if (clothing === 0 && age > 30) { score += 15; reasons.push('No clothing (+15)'); }
+    if (inv.gamepasses < 5 && age > 180) { score += 12; reasons.push(`Few gamepasses (+12)`); }
+  }
+
+  let category = 'LOW';
+  if (score >= 200) category = 'Auto-Failed (Fake Badges)';
+  else if (score >= 100) category = 'Auto-Failed (Insufficient Badges)';
+  else if (score >= 50) category = 'HIGH';
+  else if (score >= 16) category = 'MEDIUM-HIGH';
+  else if (score >= 8) category = 'MEDIUM';
+
+  return {score, category, reasons};
+}
+
+function renderContent() {
+  if (!currentUserData) return;
+
+  const d = currentUserData;
+  const inv = d.inventory;
+  const gar = d.garBadge;
+  const {score, category, reasons} = calculateScore(d);
+
+  const badgeCls = category.includes('Auto-Failed') ? 'badge-auto-fail' :
+                   category === 'HIGH' ? 'badge-high' :
+                   category === 'MEDIUM-HIGH' ? 'badge-medium-high' :
+                   category === 'MEDIUM' ? 'badge-medium' : 'badge-low';
+
+  if (activeTab === 'overview') {
+    el.panelTitle.textContent = 'Alt Risk Assessment';
+    el.panelBody.innerHTML = `
+      <div class="alert ${category.includes('Auto-Failed') || category === 'HIGH' ? 'alert-error' : category === 'LOW' ? 'alert-success' : 'alert-warning'}">
+        <strong>Alt Likelihood: <span class="badge ${badgeCls}">${category}</span></strong>
+        <div style="margin-top:10px;font-size:18px">Score: ${score}+</div>
+      </div>
+      <div class="section-title">Detection Reasons</div>
+      <ul class="reasons-list">${reasons.map(r => `<li>${r}</li>`).join('')}</ul>
+      <div class="section-title">Key Stats</div>
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">Age</span><span class="info-value">${d.accountAge} days</span></div>
+        <div class="info-item"><span class="info-label">Real Badges</span><span class="info-value">${d.realBadges}</span></div>
+        <div class="info-item"><span class="info-label">Fake %</span><span class="info-value">${gar.filteredPercentage}%</span></div>
+        <div class="info-item"><span class="info-label">GAR Badge</span><span class="info-value">${gar.message}</span></div>
+        <div class="info-item"><span class="info-label">Friends</span><span class="info-value">${d.friends}</span></div>
+        <div class="info-item"><span class="info-label">Groups</span><span class="info-value">${d.groups}</span></div>
+        ${inv.isPrivate ? '<div class="info-item"><span class="info-label">Inventory</span><span class="info-value">Private</span></div>' :
+         `<div class="info-item"><span class="info-label">Clothing</span><span class="info-value">${(inv.shirts||0)+(inv.pants||0)}</span></div>
+          <div class="info-item"><span class="info-label">Gamepasses</span><span class="info-value">${inv.gamepasses||0}</span></div>`}
+        <div class="info-item"><span class="info-label">Profile</span><span class="info-value"><a href="https://www.roblox.com/users/${currentUserId}/profile" target="_blank" style="color:#60a5fa">View</a></span></div>
+      </div>
+    `;
+  } else if (activeTab === 'badges') {
+    el.panelTitle.textContent = 'Badge Analysis';
+    el.panelBody.innerHTML = `
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">Real Badges</span><span class="info-value">${d.realBadges}</span></div>
+        <div class="info-item"><span class="info-label">Filtered Fake</span><span class="info-value">${gar.filteredBadges} (${gar.filteredPercentage}%)</span></div>
+        <div class="info-item"><span class="info-label">GAR Badge</span><span class="info-value">${gar.message}</span></div>
+        <div class="info-item"><span class="info-label">Total Badge Pages</span><span class="info-value">${gar.totalPages}</span></div>
+      </div>
+    `;
+  } else if (activeTab === 'inventory') {
+    el.panelTitle.textContent = 'Inventory';
+    el.panelBody.innerHTML = inv.isPrivate 
+      ? '<div class="alert alert-error">Inventory is private</div>'
+      : `<div class="info-grid">
+          <div class="info-item"><span class="info-label">Shirts</span><span class="info-value">${inv.shirts||0}</span></div>
+          <div class="info-item"><span class="info-label">Pants</span><span class="info-value">${inv.pants||0}</span></div>
+          <div class="info-item"><span class="info-label">Accessories</span><span class="info-value">${inv.accessories||0}</span></div>
+          <div class="info-item"><span class="info-label">Gamepasses</span><span class="info-value">${inv.gamepasses||0}</span></div>
+        </div>`;
+  } else if (activeTab === 'social') {
+    el.panelTitle.textContent = 'Social Metrics';
+    el.panelBody.innerHTML = `
+      <div class="info-grid">
+        <div class="info-item"><span class="info-label">Friends</span><span class="info-value">${d.friends}</span></div>
+        <div class="info-item"><span class="info-label">Followers</span><span class="info-value">${d.followers}</span></div>
+        <div class="info-item"><span class="info-label">Following</span><span class="info-value">${d.following}</span></div>
+        <div class="info-item"><span class="info-label">Groups</span><span class="info-value">${d.groups}</span></div>
+      </div>
+    `;
+  }
+}
+
+log('Alt Detector initialized. Enter your API key to begin.', 'success');
+</script>ameSmall.textContent = '@' + userInfo.name;
     el.bio.textContent = userInfo.description || 'No bio';
     el.bio.style.display = userInfo.description ? 'block' : 'none';
     el.accountAge.textContent = ageDays + 'd';
